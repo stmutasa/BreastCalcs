@@ -1,0 +1,13 @@
+Creating final protocol buffer... 245 patients loaded 
+- 5 fold validation
+-49 per group
+196 remain
+
+Creating final protocol buffer... 245 patients loaded
+Batch Norm: 2173.47 , Batch STD: 603.417
+
+Creating final protocol buffer... 245 patients loaded, Box Dimensions: 256
+Batch Norm: 2134.57 , Batch STD: 625.752
+
+Creating final protocol buffer... 233 patients loaded, Box Dimensions: 256
+Batch Norm: 2179.73 , Batch STD: 540.825
