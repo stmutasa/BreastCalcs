@@ -12,7 +12,7 @@ _author_ = 'simi'
 
 import tensorflow as tf
 import Input
-import SODKit.SODNetwork as SDN
+import SODNetwork as SDN
 
 # Define the FLAGS class to hold our immutable global variables
 FLAGS = tf.app.flags.FLAGS
@@ -23,99 +23,44 @@ tf.app.flags.DEFINE_string('data_dir', 'data/', """Path to the data directory.""
 # Retreive helper function object
 sdn = SDN.SODMatrix()
 
+
 def forward_pass(images, phase_train1=True):
-
     """
-    Train a 2 dimensional network
-    :param images: input images [batch, x, y, c]
-    :param phase_train1: True if this is the training phase
-    :return: L2 Loss and Logits
-    """
-
-    # Set Phase train variable
-    phase_train = tf.Variable(phase_train1, trainable=False, dtype=tf.bool)
-
-    # Images
-    img1, img2 = images[:, :, :, 1], images[:, :, :, 0]
-
-    # The first convolutional layer.
-    conv1 = sdn.convolution('Conv1', tf.expand_dims(img1, -1), 5, 8, 2, phase_train=phase_train)
-
-    # The second layer:
-    conv2 = sdn.convolution('Conv2', conv1, 3, 16, 2, phase_train=phase_train)
-
-    # The third convolutional layer Dimensions:
-    conv3 = sdn.convolution('Conv3a', conv2, 3, 32, 2, phase_train=phase_train)
-
-    # The 4th convolutional layer Dimensions
-    conv4 = sdn.convolution('Conv4', conv3, 3, 64, 2, phase_train=phase_train)
-
-    # Inception
-    inc1 = sdn.inception_layer('Inception', conv4, 128, 2, 'SAME', phase_train)
-
-    # The 5th convolutional layer Dimensions
-    conv5 = sdn.convolution('Conv5', inc1, 3, 256, 2, phase_train=phase_train)
-
-    # FC7 layer:
-    fc7 = sdn.fc7_layer('FC7', conv5, 64, True, phase_train, FLAGS.dropout_factor, BN=True)
-
-    # the softmax layer
-    Logits = sdn.linear_layer('Softmax', fc7, FLAGS.num_classes)
-
-    # Retreive the weights collection
-    weights = tf.get_collection('weights')
-
-    # Sum the losses
-    L2_loss = tf.multiply(tf.add_n([tf.nn.l2_loss(v) for v in weights]), FLAGS.l2_gamma)
-
-    # Add it to the collection
-    tf.add_to_collection('losses', L2_loss)
-
-    # Activation summary
-    tf.summary.scalar('L2_Loss', L2_loss)
-
-    return Logits, L2_loss  # Return whatever the name of the final logits variable is
-
-
-def forward_passres(images, phase_train1=True):
-
-    """
-    Train a 2 dimensional network
-    :param images: input images [batch, x, y, c]
-    :param phase_train1: True if this is the training phase
-    :return: L2 Loss and Logits
+    This function builds the network architecture and performs the forward pass
+    Two main architectures depending on where to insert the inception or residual layer
+    :param images: Images to analyze
+    :param phase_train1: bool, whether this is the training phase or testing phase
+    :return: logits: the predicted age from the network
+    :return: l2: the value of the l2 loss
     """
 
     # Set Phase train variable
     phase_train = tf.Variable(phase_train1, trainable=False, dtype=tf.bool)
 
-    # Images
+    # Images 0 is the scaled version, 1 is the regular
     img1, img2 = images[:, :, :, 1], images[:, :, :, 0]
 
     # The first layer.
-    conv1 = sdn.convolution('Conv1', tf.expand_dims(img1, -1), 5, 8, 2, phase_train=phase_train, BN=False, relu=False)
+    conv1 = sdn.convolution('Conv1', tf.expand_dims(img2, -1), 5, 16, 1, phase_train=phase_train, BN=False, relu=False)
 
-    # The second layers:
-    conv2 = sdn.residual_layer('Residual1', conv1, 3, 16, 2, phase_train=phase_train, BN=False, relu=False)
+    # The second  layer
+    conv2a = sdn.residual_layer('Res0', conv1, 3, 16, 1, phase_train=phase_train, BN=False, relu=False)
+    conv2 = sdn.residual_layer('Res1', conv2a, 3, 16, 1, phase_train=phase_train, BN=False, relu=False, DSC=True)
 
-    # The third layers:
-    conv3 = sdn.residual_layer('Residual2', conv2, 3, 32, 2, phase_train=phase_train, BN=True, relu=True)
+    # The third layer
+    conv3 = sdn.residual_layer('Res2', conv2, 3, 32, 1, phase_train=phase_train, BN=True, relu=True, DSC=True)
 
-    # Inception layer
-    inception1 = sdn.inception_layer('Inception1', conv3, 64, 2, phase_train=phase_train, BN=False, relu=False)
+    # Insert inception/residual layer here.
+    conv4 = sdn.inception_layer('Inception1', conv3, 32, 2, phase_train=phase_train, BN=False, relu=False)
 
     # The 4th layer
-    conv4 = sdn.residual_layer('Residual3', inception1, 3, 64, 2, phase_train=phase_train, BN=True, relu=True)
-    #
-    # # 5th layer
-    # conv5 = sdn.residual_layer('Residual4', conv4, 3, 64, 1, phase_train=phase_train, BN=True, relu=True)
-    #
-    # # Transition layer
-    # trans = sdn.transition_layer('Transitional', conv5, 64, 1, 'SAME', phase_train)
-    #print(conv5, inception1, conv4, trans)
+    conv5 = sdn.residual_layer('Res3', conv4, 3, 128, 1, phase_train=phase_train, BN=False, relu=False, DSC=False)
 
-    # FC7 layer:
-    fc7 = sdn.fc7_layer('FC7', conv4, 32, True, phase_train, FLAGS.dropout_factor)
+    # 5th layer
+    conv6 = sdn.residual_layer('Res4', conv5, 3, 128, 1, phase_train=phase_train, BN=True, relu=True, DSC=True)
+
+    # The Fc7 layer
+    fc7 = sdn.fc7_layer('FC7', conv6, 32, True, phase_train, FLAGS.dropout_factor, BN=False, override=3)
 
     # the softmax layer
     Logits = sdn.linear_layer('Softmax', fc7, FLAGS.num_classes)
@@ -131,8 +76,9 @@ def forward_passres(images, phase_train1=True):
 
     # Activation summary
     tf.summary.scalar('L2_Loss', L2_loss)
+    print(conv4, conv6)
 
-    return Logits, L2_loss  # Return whatever the name of the final logits variable is
+    return Logits, L2_loss
 
 
 def total_loss(logits, labels):
@@ -199,10 +145,10 @@ def backward_pass(total_loss):
     gradients = opt.compute_gradients(total_loss)
 
     # clip the gradients
-    clipped_gradients = [(tf.clip_by_value(grad, -1., 1.), var) for grad, var in gradients]
+    #gradients = [(tf.clip_by_value(grad, -1., 1.), var) for grad, var in gradients]
 
     # Apply the gradients
-    train_op = opt.apply_gradients(clipped_gradients, global_step, name='train')
+    train_op = opt.apply_gradients(gradients, global_step, name='train')
 
     # Add histograms for the trainable variables. i.e. the collection of variables created with Trainable=True
     for var in tf.trainable_variables():
@@ -240,7 +186,7 @@ def inputs(skip=False):
 
     # Part 3: Create randomized batches
     print('----------------------------------Creating and randomizing batches...')
-    train = Input.randomize_batches(train, FLAGS.batch_size)
-    valid = Input.val_batches(valid, FLAGS.batch_size)
+    train = Input.sdl.randomize_batches(train, FLAGS.batch_size)
+    valid = Input.sdl.val_batches(valid, FLAGS.batch_size)
 
     return train, valid

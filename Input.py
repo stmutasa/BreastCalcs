@@ -152,7 +152,6 @@ def pre_process(box_dims, xvals):
     for y in range (xvals): writer[y].close()
 
 
-
 def load_protobuf():
     """
     Loads the protocol buffer into a form to send to shuffle
@@ -209,7 +208,7 @@ def load_protobuf():
     box_size = tf.string_to_number(features['box_size'], tf.float32)
 
     # Image augmentation
-    angle = tf.random_uniform([1], -1.57, 1.57)
+    angle = tf.random_uniform([1], -0.52, 0.52)
 
     # First randomly rotate
     image = tf.contrib.image.rotate(image, angle)
@@ -225,7 +224,7 @@ def load_protobuf():
 
     # Display the images
     tf.summary.image('Train Norm IMG', tf.reshape(image[:, :, 0], shape=[1, FLAGS.box_dims, FLAGS.box_dims, 1]), 4)
-    tf.summary.image('Train Zoom IMG', tf.reshape(image[:, :, 1], shape=[1, FLAGS.box_dims, FLAGS.box_dims, 1]), 4)
+    tf.summary.image('Train Base IMG', tf.reshape(image[:, :, 1], shape=[1, FLAGS.box_dims, FLAGS.box_dims, 1]), 4)
 
     # Return data as a dictionary
     final_data = {'image': image, 'label': label, 'patient':patient, 'box_size': box_size,
@@ -303,7 +302,7 @@ def load_validation_set():
 
     # Display the images
     tf.summary.image('Test Norm IMG', tf.reshape(image[:, :, 0], shape=[1, FLAGS.box_dims, FLAGS.box_dims, 1]), 4)
-    tf.summary.image('Test Zoom IMG', tf.reshape(image[:, :, 1], shape=[1, FLAGS.box_dims, FLAGS.box_dims, 1]), 4)
+    tf.summary.image('Test Base IMG', tf.reshape(image[:, :, 1], shape=[1, FLAGS.box_dims, FLAGS.box_dims, 1]), 4)
 
     # Return data as a dictionary
     final_data = {'image': image, 'label': label, 'patient': patient, 'box_size': box_size,
@@ -314,51 +313,3 @@ def load_validation_set():
     for key, feature in final_data.items():
         returned_dict[key] = feature
     return returned_dict
-
-
-def randomize_batches(image_dict, batch_size):
-    """ This function takes our full data tensors and creates shuffled batches of data.
-        Args:
-            images_dict: Dictionary of tensors with the labels we created
-            batch_size: How many examples to load (first dimension of  the matrix created)
-        Returns:
-            train: a dictionary of label: batch of data with that label """
-
-    min_dq = 16  # Min elements to queue after a dequeue to ensure good mixing
-    capacity = min_dq + 3 * batch_size  # max number of elements in the queue
-    keys, tensors = zip(*image_dict.items())  # Create zip object
-
-    # This function creates batches by randomly shuffling the input tensors. returns a dict of shuffled tensors
-    shuffled = tf.train.shuffle_batch(tensors, batch_size=batch_size,
-                                      capacity=capacity, min_after_dequeue=min_dq)
-
-    batch_dict = {}  # Dictionary to store our shuffled examples
-
-    # Recreate the batched data as a dictionary with the new batch size
-    for key, shuffle in zip(keys, shuffled): batch_dict[key] = shuffle
-
-
-    return batch_dict
-
-
-def val_batches(image_dict, batch_size):
-    """
-    Same as above but for the validation set
-    :param image_dict:
-    :param batch_size:
-    :return:
-    """
-
-    min_dq = 16  # Min elements to queue after a dequeue to ensure good mixing
-    capacity = min_dq + 3 * batch_size  # max number of elements in the queue
-    keys, tensors = zip(*image_dict.items())  # Create zip object
-
-    # This function creates batches by randomly shuffling the input tensors. returns a dict of shuffled tensors
-    shuffled = tf.train.batch(tensors, batch_size=batch_size, capacity=capacity)
-
-    batch_dict = {}  # Dictionary to store our shuffled examples
-
-    # Recreate the batched data as a dictionary with the new batch size
-    for key, shuffle in zip(keys, shuffled): batch_dict[key] = shuffle
-
-    return batch_dict

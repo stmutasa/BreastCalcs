@@ -26,9 +26,9 @@ tf.app.flags.DEFINE_integer('cross_validations', 5, """Save this number of buffe
 
 # >5k example lesions total
 tf.app.flags.DEFINE_integer('epoch_size', 186, """How many images were loaded""")
-tf.app.flags.DEFINE_integer('print_interval', 11, """How often to print a summary to console during training""")
-tf.app.flags.DEFINE_integer('checkpoint_steps', 110, """How many STEPS to wait before saving a checkpoint""")
-tf.app.flags.DEFINE_integer('batch_size', 17, """Number of images to process in a batch.""")
+tf.app.flags.DEFINE_integer('print_interval', 6, """How often to print a summary to console during training""")
+tf.app.flags.DEFINE_integer('checkpoint_steps', 59, """How many STEPS to wait before saving a checkpoint""")
+tf.app.flags.DEFINE_integer('batch_size', 32, """Number of images to process in a batch.""")
 
 # Regularizers
 tf.app.flags.DEFINE_float('dropout_factor', 0.5, """ Keep probability""")
@@ -37,7 +37,7 @@ tf.app.flags.DEFINE_float('moving_avg_decay', 0.998, """ The decay rate for the 
 tf.app.flags.DEFINE_float('loss_factor', 1.46, """Penalty for missing a class is this times more severe""")
 
 # Hyperparameters to control the learning rate
-tf.app.flags.DEFINE_float('learning_rate', 3e-3, """Initial learning rate""")
+tf.app.flags.DEFINE_float('learning_rate', 1e-3, """Initial learning rate""")
 tf.app.flags.DEFINE_float('beta1', 0.9, """ The beta 1 value for the adam optimizer""")
 tf.app.flags.DEFINE_float('beta2', 0.999, """ The beta 1 value for the adam optimizer""")
 
@@ -161,7 +161,7 @@ def train():
                         saver.save(mon_sess, checkpoint_file)
 
                         # Sleep an amount of time to let testing catch up
-                        time.sleep(3)
+                        time.sleep(7)
 
                     # Increment step
                     step += 1

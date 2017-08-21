@@ -9,6 +9,7 @@ import time, os, glob
 import BreastCalcMatrix as BreastMatrix
 import numpy as np
 import tensorflow as tf
+import SODTester as SDT
 
 _author_ = 'Simi'
 
@@ -90,9 +91,9 @@ def test():
                 # Set the max step count
                 max_steps = int(FLAGS.epoch_size / FLAGS.batch_size)
 
-                # Running values for accuracy calculation
-                right = 0
-                total = 0
+                # Define tester class instance
+                sdt = SDT.SODTester()
+                print (sdt.sensitiviy, sdt.specificity)
 
                 try:
                     while step < max_steps:
@@ -100,19 +101,8 @@ def test():
                         # Load some metrics for testing
                         lbl1, logtz = mon_sess.run([labels, logits])
 
-                        # Retreive and print the labels and logits
-                        lbl = np.squeeze(lbl1.astype(np.int8))
-                        logitz = np.squeeze(np.argmax(logtz.astype(np.float), axis=1))
-
-                        # Print Summary
-                        print('-' * 70)
-                        print('Patient %s/%s Class: %s' %(step, max_steps, lbl))
-                        print('Patient %s/%s Preds: %s' %(step, max_steps, logitz))
-
-                        # retreive accuracy
-                        for z in range(len(lbl)):
-                            if lbl[z] == logitz[z]: right += 1
-                        total += len(lbl)
+                        # Calculate metrics
+                        sdt.calculate_metrics(logtz, lbl1, 1, step, True)
 
                         # Increment step
                         step += 1
@@ -122,23 +112,17 @@ def test():
 
                 finally:
 
-                    # Calculate final MAE and ACC
-                    accuracy = 100*right/total
-
-                    # Print the final accuracies and MAE
-                    print('-' * 70)
-                    print(
-                        '--- EPOCH: %s ACCURACY: %.2f %% (Old Best: %.1f) ---'
-                        % (Epoch, accuracy, best_MAE))
+                    # retreive metrics
+                    sdt.retreive_metrics_classification(Epoch, True)
 
                     # Lets save runs below 0.8
-                    if accuracy >= best_MAE:
+                    if sdt.accuracy >= best_MAE:
 
                         # Save the checkpoint
                         print(" ---------------- SAVING THIS ONE %s", ckpt.model_checkpoint_path)
 
                         # Define the filename
-                        file = ('Epoch_%s_MAE_%0.3f' % (Epoch, accuracy))
+                        file = ('Epoch_%s_MAE_%0.3f' % (Epoch, sdt.accuracy))
 
                         # Define the checkpoint file:
                         checkpoint_file = os.path.join('testing/', file)
@@ -147,7 +131,7 @@ def test():
                         saver.save(mon_sess, checkpoint_file)
 
                         # Save a new best MAE
-                        best_MAE = accuracy
+                        best_MAE = sdt.accuracy
 
                     # Stop threads when done
                     coord.request_stop()
@@ -157,6 +141,10 @@ def test():
 
                     # Shut down the session
                     mon_sess.close()
+
+                    # Garbage collection
+                    del sdt
+                    del mon_sess, ckpt, coord, threads
 
             # Break if this is the final checkpoint
             if 'Final' in Epoch: break
