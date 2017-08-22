@@ -48,7 +48,8 @@ def forward_pass(images, phase_train1=True):
     conv2 = sdn.residual_layer('Res1', conv2a, 3, 16, 1, phase_train=phase_train, BN=False, relu=False, DSC=True)
 
     # The third layer
-    conv3 = sdn.residual_layer('Res2', conv2, 3, 32, 1, phase_train=phase_train, BN=True, relu=True, DSC=True)
+    conv3a = sdn.residual_layer('Res2a', conv2, 3, 32, 1, phase_train=phase_train, BN=False, relu=False)
+    conv3 = sdn.residual_layer('Res2', conv3a, 3, 32, 1, phase_train=phase_train, BN=True, relu=True, DSC=True)
 
     # Insert inception/residual layer here.
     conv4 = sdn.inception_layer('Inception1', conv3, 32, 2, phase_train=phase_train, BN=False, relu=False)

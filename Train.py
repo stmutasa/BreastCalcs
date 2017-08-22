@@ -37,7 +37,7 @@ tf.app.flags.DEFINE_float('moving_avg_decay', 0.998, """ The decay rate for the 
 tf.app.flags.DEFINE_float('loss_factor', 1.46, """Penalty for missing a class is this times more severe""")
 
 # Hyperparameters to control the learning rate
-tf.app.flags.DEFINE_float('learning_rate', 1e-3, """Initial learning rate""")
+tf.app.flags.DEFINE_float('learning_rate', 3e-3, """Initial learning rate""")
 tf.app.flags.DEFINE_float('beta1', 0.9, """ The beta 1 value for the adam optimizer""")
 tf.app.flags.DEFINE_float('beta2', 0.999, """ The beta 1 value for the adam optimizer""")
 

@@ -21,7 +21,7 @@ tf.app.flags.DEFINE_string('train_dir', 'training/', """Directory to write event
 tf.app.flags.DEFINE_integer('epoch_size', 47, """Test examples: OF: 508""")
 tf.app.flags.DEFINE_integer('batch_size', 2, """Number of images to process in a batch.""")
 tf.app.flags.DEFINE_integer('num_classes', 2, """ Number of classes""")
-tf.app.flags.DEFINE_string('test_files', '4', """Files for testing have this name""")
+tf.app.flags.DEFINE_string('test_files', '0', """Files for testing have this name""")
 tf.app.flags.DEFINE_integer('box_dims', 128, """dimensions of the input pictures""")
 
 # Hyperparameters:
@@ -56,7 +56,9 @@ def test():
         # Initialize the saver
         saver = tf.train.Saver(var_restore, max_to_keep=3)
 
-        best_MAE = 20
+        # Performance trackers
+        best_MAE = 0.2
+        best_epoch = 'None'
 
         while True:
 
@@ -114,15 +116,16 @@ def test():
 
                     # retreive metrics
                     sdt.retreive_metrics_classification(Epoch, True)
+                    print ('------ Current Best F1: %.4f (Epoch: %s) --------' %(best_MAE, best_epoch))
 
-                    # Lets save runs below 0.8
-                    if sdt.accuracy >= best_MAE:
+                    # Lets save if they win accuracy
+                    if sdt.F1_score >= best_MAE:
 
                         # Save the checkpoint
                         print(" ---------------- SAVING THIS ONE %s", ckpt.model_checkpoint_path)
 
                         # Define the filename
-                        file = ('Epoch_%s_MAE_%0.3f' % (Epoch, sdt.accuracy))
+                        file = ('Epoch_%s_F1_%0.3f' % (Epoch, sdt.F1_score))
 
                         # Define the checkpoint file:
                         checkpoint_file = os.path.join('testing/', file)
@@ -131,7 +134,8 @@ def test():
                         saver.save(mon_sess, checkpoint_file)
 
                         # Save a new best MAE
-                        best_MAE = sdt.accuracy
+                        best_MAE = sdt.F1_score
+                        best_epoch = Epoch
 
                     # Stop threads when done
                     coord.request_stop()
