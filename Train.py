@@ -17,8 +17,8 @@ _author_ = 'Simi'
 FLAGS = tf.app.flags.FLAGS
 
 # Define some of the immutable variables
-tf.app.flags.DEFINE_string('train_dir', 'training/', """Directory to write event logs and save checkpoint files""")
-tf.app.flags.DEFINE_integer('num_epochs', 900, """Number of epochs to run""")
+# tf.app.flags.DEFINE_string('train_dir', 'training/', """Directory to write event logs and save checkpoint files""")
+tf.app.flags.DEFINE_integer('num_epochs', 1200, """Number of epochs to run""")
 tf.app.flags.DEFINE_integer('num_classes', 2, """ Number of classes""")
 tf.app.flags.DEFINE_string('test_files', '4', """Files for testing have this name""")
 tf.app.flags.DEFINE_integer('box_dims', 128, """dimensions of the input pictures""")
@@ -88,7 +88,7 @@ def train():
             mon_sess.run(var_init)
 
             # Initialize the handle to the summary writer in our training directory
-            summary_writer = tf.summary.FileWriter(FLAGS.train_dir, mon_sess.graph)
+            summary_writer = tf.summary.FileWriter('training/Train', mon_sess.graph)
 
             # Initialize the thread coordinator
             coord = tf.train.Coordinator()

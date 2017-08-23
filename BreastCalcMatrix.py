@@ -48,8 +48,7 @@ def forward_pass(images, phase_train1=True):
     conv2 = sdn.residual_layer('Res1', conv2a, 3, 16, 1, phase_train=phase_train, BN=False, relu=False, DSC=True)
 
     # The third layer
-    conv3a = sdn.residual_layer('Res2a', conv2, 3, 32, 1, phase_train=phase_train, BN=False, relu=False)
-    conv3 = sdn.residual_layer('Res2', conv3a, 3, 32, 1, phase_train=phase_train, BN=True, relu=True, DSC=True)
+    conv3 = sdn.residual_layer('Res2', conv2, 3, 32, 1, phase_train=phase_train, BN=True, relu=True, DSC=True)
 
     # Insert inception/residual layer here.
     conv4 = sdn.inception_layer('Inception1', conv3, 32, 2, phase_train=phase_train, BN=False, relu=False)
@@ -93,6 +92,9 @@ def total_loss(logits, labels):
             Your loss value as a Tensor (float)
     """
 
+    # Calculate the AUC
+    AUC = tf.contrib.metrics.streaming_auc(tf.argmax(logits, 1), labels)
+
     # Apply cost sensitive loss here
     if FLAGS.loss_factor != 1.0:
 
@@ -114,8 +116,9 @@ def total_loss(logits, labels):
     # Reduce to scalar
     loss = tf.reduce_mean(loss)
 
-    # Output the summary of the MSE and MAE
+    # Output the losses
     tf.summary.scalar('Cross Entropy', loss)
+    tf.summary.scalar('AUC', AUC[1])
 
     # Add these losses to the collection
     tf.add_to_collection('losses', loss)

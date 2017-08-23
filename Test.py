@@ -19,14 +19,15 @@ FLAGS = tf.app.flags.FLAGS
 # Define some of the immutable variables
 tf.app.flags.DEFINE_string('train_dir', 'training/', """Directory to write event logs and save checkpoint files""")
 tf.app.flags.DEFINE_integer('epoch_size', 47, """Test examples: OF: 508""")
-tf.app.flags.DEFINE_integer('batch_size', 2, """Number of images to process in a batch.""")
+tf.app.flags.DEFINE_integer('batch_size', 47, """Number of images to process in a batch.""")
 tf.app.flags.DEFINE_integer('num_classes', 2, """ Number of classes""")
-tf.app.flags.DEFINE_string('test_files', '0', """Files for testing have this name""")
+tf.app.flags.DEFINE_string('test_files', '4', """Files for testing have this name""")
 tf.app.flags.DEFINE_integer('box_dims', 128, """dimensions of the input pictures""")
 
 # Hyperparameters:
 tf.app.flags.DEFINE_float('dropout_factor', 0.5, """ p value for the dropout layer""")
 tf.app.flags.DEFINE_float('l2_gamma', 1e-4, """ The gamma value for regularization loss""")
+tf.app.flags.DEFINE_float('loss_factor', 1.46, """Penalty for missing a class is this times more severe""")
 
 # Define a custom training class
 def test():
@@ -43,6 +44,15 @@ def test():
 
         # To retreive labels
         labels = validation['label2']
+
+        # Retreive AUC
+        AUC = tf.contrib.metrics.streaming_auc(tf.argmax(logits, 1), labels)
+
+        # Just to print out the loss
+        _ = BreastMatrix.total_loss(logits, labels)
+
+        # Merge the summaries
+        all_summaries = tf.summary.merge_all()
 
         # Initialize variables operation
         var_init = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
@@ -70,6 +80,9 @@ def test():
                 # Initialize the variables
                 mon_sess.run(var_init)
 
+                # Initialize the handle to the summary writer in our training directory
+                #summary_writer = tf.summary.FileWriter('training/Test', mon_sess.graph)
+
                 if ckpt and ckpt.model_checkpoint_path:
 
                     # Restore the learned variables
@@ -79,7 +92,7 @@ def test():
                     restorer.restore(mon_sess, ckpt.model_checkpoint_path)
 
                     # Extract the epoch
-                    Epoch = ckpt.model_checkpoint_path.split('/')[-1].split('Epoch')[-1]
+                    Epoch = ckpt.model_checkpoint_path.split('/')[-1].split('_')[-1]
 
                 # Initialize the thread coordinator
                 coord = tf.train.Coordinator()
@@ -101,10 +114,11 @@ def test():
                     while step < max_steps:
 
                         # Load some metrics for testing
-                        lbl1, logtz = mon_sess.run([labels, logits])
+                        lbl1, logtz, auc = mon_sess.run([labels, logits, AUC])
 
                         # Calculate metrics
                         sdt.calculate_metrics(logtz, lbl1, 1, step, True)
+                        print ('Tensorflow AUC: ', auc[1])
 
                         # Increment step
                         step += 1
@@ -116,16 +130,16 @@ def test():
 
                     # retreive metrics
                     sdt.retreive_metrics_classification(Epoch, True)
-                    print ('------ Current Best F1: %.4f (Epoch: %s) --------' %(best_MAE, best_epoch))
+                    print ('------ Current Best AUC: %.4f (Epoch: %s) --------' %(best_MAE, best_epoch))
 
                     # Lets save if they win accuracy
-                    if sdt.F1_score >= best_MAE:
+                    if sdt.AUC >= best_MAE:
 
                         # Save the checkpoint
                         print(" ---------------- SAVING THIS ONE %s", ckpt.model_checkpoint_path)
 
                         # Define the filename
-                        file = ('Epoch_%s_F1_%0.3f' % (Epoch, sdt.F1_score))
+                        file = ('Epoch_%s_AUC_%0.3f' % (Epoch, sdt.AUC))
 
                         # Define the checkpoint file:
                         checkpoint_file = os.path.join('testing/', file)
@@ -134,7 +148,7 @@ def test():
                         saver.save(mon_sess, checkpoint_file)
 
                         # Save a new best MAE
-                        best_MAE = sdt.F1_score
+                        best_MAE = sdt.AUC
                         best_epoch = Epoch
 
                     # Stop threads when done
