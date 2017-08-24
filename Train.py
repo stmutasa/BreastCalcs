@@ -19,9 +19,10 @@ FLAGS = tf.app.flags.FLAGS
 # Define some of the immutable variables
 # tf.app.flags.DEFINE_string('train_dir', 'training/', """Directory to write event logs and save checkpoint files""")
 tf.app.flags.DEFINE_integer('num_epochs', 1200, """Number of epochs to run""")
-tf.app.flags.DEFINE_integer('num_classes', 2, """ Number of classes""")
+tf.app.flags.DEFINE_integer('num_classes', 3, """ Number of classes""")
 tf.app.flags.DEFINE_string('test_files', '4', """Files for testing have this name""")
 tf.app.flags.DEFINE_integer('box_dims', 128, """dimensions of the input pictures""")
+tf.app.flags.DEFINE_integer('network_dims', 64, """the dimensions fed into the network""")
 tf.app.flags.DEFINE_integer('cross_validations', 5, """Save this number of buffers for cross validation""")
 
 # >5k example lesions total
@@ -34,7 +35,7 @@ tf.app.flags.DEFINE_integer('batch_size', 32, """Number of images to process in 
 tf.app.flags.DEFINE_float('dropout_factor', 0.5, """ Keep probability""")
 tf.app.flags.DEFINE_float('l2_gamma', 1e-4, """ The gamma value for regularization loss""")
 tf.app.flags.DEFINE_float('moving_avg_decay', 0.998, """ The decay rate for the moving average tracker""")
-tf.app.flags.DEFINE_float('loss_factor', 1.46, """Penalty for missing a class is this times more severe""")
+tf.app.flags.DEFINE_float('loss_factor', 1.0, """Penalty for missing a class is this times more severe""")
 
 # Hyperparameters to control the learning rate
 tf.app.flags.DEFINE_float('learning_rate', 3e-3, """Initial learning rate""")
@@ -55,7 +56,7 @@ def train():
         logits, l2loss = BreastMatrix.forward_pass(images['image'], phase_train1=True)
 
         # Labels
-        labels = images['label2']
+        labels = images['label']
 
         # Calculate the objective function loss
         SCE_loss = BreastMatrix.total_loss(logits, labels)

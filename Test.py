@@ -20,7 +20,7 @@ FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string('train_dir', 'training/', """Directory to write event logs and save checkpoint files""")
 tf.app.flags.DEFINE_integer('epoch_size', 47, """Test examples: OF: 508""")
 tf.app.flags.DEFINE_integer('batch_size', 47, """Number of images to process in a batch.""")
-tf.app.flags.DEFINE_integer('num_classes', 2, """ Number of classes""")
+tf.app.flags.DEFINE_integer('num_classes', 3, """ Number of classes""")
 tf.app.flags.DEFINE_string('test_files', '4', """Files for testing have this name""")
 tf.app.flags.DEFINE_integer('box_dims', 128, """dimensions of the input pictures""")
 
@@ -43,7 +43,7 @@ def test():
         logits, l2loss = BreastMatrix.forward_pass(validation['image'], phase_train1=False)
 
         # To retreive labels
-        labels = validation['label2']
+        labels = validation['label']
 
         # Retreive AUC
         AUC = tf.contrib.metrics.streaming_auc(tf.argmax(logits, 1), labels)
@@ -107,8 +107,7 @@ def test():
                 max_steps = int(FLAGS.epoch_size / FLAGS.batch_size)
 
                 # Define tester class instance
-                sdt = SDT.SODTester()
-                print (sdt.sensitiviy, sdt.specificity)
+                sdt = SDT.SODTester(False, False)
 
                 try:
                     while step < max_steps:
@@ -117,8 +116,8 @@ def test():
                         lbl1, logtz, auc = mon_sess.run([labels, logits, AUC])
 
                         # Calculate metrics
-                        sdt.calculate_metrics(logtz, lbl1, 1, step, True)
-                        print ('Tensorflow AUC: ', auc[1])
+                        # sdt.calculate_metrics(logtz, lbl1, 1, step, True)
+                        sdt.calculate_multiclass_metrics(logtz, lbl1, step, FLAGS.num_classes, False)
 
                         # Increment step
                         step += 1
