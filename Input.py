@@ -2,6 +2,7 @@
 import os, cv2, glob
 import numpy as np
 import tensorflow as tf
+from random import shuffle
 
 import SODLoader as SDL
 
@@ -15,10 +16,169 @@ def pre_process(box_dims, xvals):
 
     # Retreive filenames data/raw/pure/Patient 41/2/ser32770img00005.dcm
     filenames = sdl.retreive_filelist('dcm', include_subfolders=True, path = 'data/raw/')
+
+    # Shuffle filenames to create semi even protobufs
+    shuffle(filenames)
     print ('Files: ', filenames)
 
     # Global variables
-    index = 0
+    index, filesave, pt = 0, 0, 0
+    lab1, lab2 = 0, 0
+    data = {}
+
+    # Double the box size
+    box_dims *= 2
+    print ('Box Dimensions: ', box_dims, 'From: ', box_dims/2)
+
+    for file in filenames:
+
+        # Directory name
+        dirname = os.path.dirname(file)
+
+        # Series
+        series = int(dirname.split('/')[-1])
+
+        # Skip the non mag views (series 1 and 2)
+        if int(series) < 3: continue
+
+        # Retreive the patient name
+        patient = int(dirname.split('/')[3].split(' ')[-1])
+
+        # Retreive the type of invasion
+        invasion = dirname.split('/')[2]
+
+        # Dir data/raw/invasive/Patient 53/3, ser 3, pt 53, inv invasive, root Patient 53
+        dirname = dirname[:-2]
+        label_file = (dirname + '/%s-%s.nii.gz' %(patient, series))
+
+        # Load the dicom
+        image, acc, dims, window = sdl.load_DICOM_2D(file)
+
+        # Load the label
+        segments = np.squeeze(sdl.load_NIFTY(label_file))
+
+        # Flip x and Y
+        segments = np.squeeze(sdl.reshape_NHWC(segments, False))
+
+        # # Test TODO
+        # print('Dir %s, ser %s, pt %s, inv %s, root %s, img %s, seg %s' %
+        #       (label_file, series, patient, invasion, root, image.shape, segments.shape))
+
+        # Assign labels
+        if 'invasive' in invasion: label = 0
+        elif 'micro' in invasion:  label = 1
+        else: label = 2
+
+        # Second labels
+        if label < 2:
+            label2 = 0
+            lab2 += 2
+        else:
+            label2 = 1
+            lab1 += 1
+
+        # Retreive the center of the largest label
+        blob, cn = sdl.largest_blob(segments, image)
+
+        # Calculate a factor to make our image size, call this "radius"
+        radius = np.sum(blob)**(1/3)*10
+
+        # Make a 2dbox at the center of the label with size "radius" if scaled and 256 if not
+        box_scaled, _ = sdl.generate_box(image, cn, int(radius)*2, dim3d=False)
+        box_wide, _ = sdl.generate_box(image, cn, 512, dim3d=False)
+
+        # Resize image
+        box_scaled = cv2.resize(box_scaled, (box_dims, box_dims))
+        box_wide = cv2.resize(box_wide, (box_dims, box_dims))
+
+        # Save the boxes in one
+        box = np.zeros(shape=(box_dims, box_dims, 2)).astype(np.float32)
+        box[:, :, 0] = box_scaled
+        box[:, :, 1] = box_wide
+
+        # Normalize the boxes
+        box = (box - 2160.61) / 555.477
+
+        # Set how many to iterate through
+        num_examples = int(2 - label2)
+
+        # Generate X examples
+        for i in range (num_examples):
+
+            # Generate the dictionary
+            data[index] = {'data': box, 'label': label, 'label2': label2, 'patient': int(patient),
+                    'series': int(series), 'invasion': invasion, 'box_x': cn[0], 'box_y': cn[1], 'box_size': radius}
+
+            # Append counter
+            index += 1
+
+            # Summary
+            if index % 100 == 0: print (index, " Patient's loaded ", patient , series, label, label2, invasion, radius)
+
+        # Finish this example of this patient
+        pt +=1
+
+        # Save if multiples of 49
+        if pt % (243/xvals) == 0:
+
+            # Now create a protocol buffer
+            print('Creating a protocol buffer... %s examples from %s patients loaded, Invasive %s, Pure DCIS: %s'
+                  %(len(data), pt, lab2, lab1))
+
+            # Open the file writer
+            writer = tf.python_io.TFRecordWriter(os.path.join(('data/Data%s' % filesave) + '.tfrecords'))
+
+            # Loop through each example and append the protobuf with the specified features
+            for key, values in data.items():
+
+                # Serialize to string
+                example = tf.train.Example(features=tf.train.Features(feature=sdl.create_feature_dict(values, key)))
+
+                # Save this index as a serialized string in the protobuf
+                writer.write(example.SerializeToString())
+
+            # Close the file after writing
+            writer.close()
+
+            # Trackers
+            filesave += 1
+
+            # Garbage
+            del data
+            data = {}
+
+
+    # Finished all patients
+
+    # Now create a protocol buffer
+    print (lab1, lab2, index)
+    print('Creating final protocol buffer... %s examples from %s patients loaded, Invasive %s, Pure DCIS: %s'
+          % (index, pt, lab2, lab1))
+
+    # Open the file writer
+    writer = tf.python_io.TFRecordWriter(os.path.join(('data/DataFin') + '.tfrecords'))
+
+    # Loop through each example and append the protobuf with the specified features
+    for key, values in data.items():
+
+        # Serialize to string
+        example = tf.train.Example(features=tf.train.Features(feature=sdl.create_feature_dict(values, key)))
+
+        # Save this index as a serialized string in the protobuf
+        writer.write(example.SerializeToString())
+
+    # Close the file after writing
+    writer.close()
+
+
+def pre_process_fresh(box_dims, xvals):
+
+    # Retreive filenames data/raw/pure/Patient 41/2/ser32770img00005.dcm
+    filenames = sdl.retreive_filelist('dcm', include_subfolders=True, path = 'data/raw/')
+    print ('Files: ', filenames)
+
+    # Global variables
+    index, lab1, lab2, filesave = 0, 0, 0, 0
     data = {}
 
     # Double the box size
@@ -79,8 +239,12 @@ def pre_process(box_dims, xvals):
         else: label = 2
 
         # Second labels
-        if label < 2: label2 = 0
-        else: label2 = 1
+        if label < 2:
+            label2 = 0
+            lab2 += 3
+        else:
+            label2 = 1
+            lab1 += 2
 
         # Retreive the center of the largest label
         blob, cn = sdl.largest_blob(segments, image)
@@ -101,15 +265,21 @@ def pre_process(box_dims, xvals):
         box[:, :, 0] = box_scaled
         box[:, :, 1] = box_wide
 
-        # Generate the dictionary
-        data[index] = {'data': box, 'label': label, 'label2': label2, 'patient': int(patient),
-                'series': int(series), 'invasion': invasion, 'box_x': cn[0], 'box_y': cn[1], 'box_size': radius}
+        # Set how many to iterate through
+        num_examples = int(3 - label2)
 
-        # Append counter
-        index += 1
+        # Generate X examples
+        for i in range (num_examples):
 
-        # Summary
-        if index % 10 == 0: print (index, " Patient's loaded ", patient , series, label, label2, invasion, radius)
+            # Generate the dictionary
+            data[index] = {'data': box, 'label': label, 'label2': label2, 'patient': int(patient),
+                    'series': int(series), 'invasion': invasion, 'box_x': cn[0], 'box_y': cn[1], 'box_size': radius}
+
+            # Append counter
+            index += 1
+
+            # Summary
+            if index % 10 == 0: print (index, " Patient's loaded ", patient , series, label, label2, invasion, radius)
 
         # Finish this example of this patient
 
@@ -117,6 +287,7 @@ def pre_process(box_dims, xvals):
 
     # Now create a protocol buffer
     print('Creating final protocol buffer... %s patients loaded, Box Dimensions: %s' %(len(data), box_dims))
+    print ('Invasive %s, Pure DCIS: %s' %(lab2, lab1))
 
     # Initialize normalization images array
     normz = np.zeros(shape=(len(data), box_dims, box_dims, 2), dtype=np.float32)
@@ -226,6 +397,9 @@ def load_protobuf():
     tf.summary.image('Train Norm IMG', tf.reshape(image[:, :, 0], shape=[1, FLAGS.box_dims, FLAGS.box_dims, 1]), 4)
     tf.summary.image('Train Base IMG', tf.reshape(image[:, :, 1], shape=[1, FLAGS.box_dims, FLAGS.box_dims, 1]), 4)
 
+    # Reshape image
+    image = tf.image.resize_images(image, [FLAGS.network_dims, FLAGS.network_dims])
+
     # Return data as a dictionary
     final_data = {'image': image, 'label': label, 'patient':patient, 'box_size': box_size,
                   'label2': label2, 'invasion': invasion, 'series': series, 'box_loc': [box_y, box_x]}
@@ -297,12 +471,12 @@ def load_validation_set():
     # Crop center
     image = tf.image.central_crop(image, 0.5)
 
-    # Resize
-    image = tf.image.resize_images(image, [FLAGS.box_dims, FLAGS.box_dims])
-
     # Display the images
     tf.summary.image('Test Norm IMG', tf.reshape(image[:, :, 0], shape=[1, FLAGS.box_dims, FLAGS.box_dims, 1]), 4)
     tf.summary.image('Test Base IMG', tf.reshape(image[:, :, 1], shape=[1, FLAGS.box_dims, FLAGS.box_dims, 1]), 4)
+
+    # Resize image
+    image = tf.image.resize_images(image, [FLAGS.network_dims, FLAGS.network_dims])
 
     # Return data as a dictionary
     final_data = {'image': image, 'label': label, 'patient': patient, 'box_size': box_size,
