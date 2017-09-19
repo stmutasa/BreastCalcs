@@ -45,22 +45,22 @@ def forward_pass(images, phase_train1=True):
 
     # The second  layer
     conv2a = sdn.residual_layer('Res0', conv1, 3, 16, 1, phase_train=phase_train, BN=False, relu=False)
-    conv2 = sdn.residual_layer('Res1', conv2a, 3, 16, 1, phase_train=phase_train, BN=False, relu=False, DSC=True)
+    conv2 = sdn.residual_layer('Res1', conv2a, 3, 16, 1, phase_train=phase_train, BN=False, relu=False, DSC=False)
 
     # The third layer
-    conv3 = sdn.residual_layer('Res2', conv2, 3, 32, 1, phase_train=phase_train, BN=True, relu=True, DSC=True)
+    conv3 = sdn.residual_layer('Res2', conv2, 3, 16, 1, phase_train=phase_train, BN=True, relu=True, DSC=False)
 
     # Insert inception/residual layer here.
-    conv4 = sdn.inception_layer('Inception1', conv3, 32, 2, phase_train=phase_train, BN=False, relu=False)
+    conv4 = sdn.inception_layer('Inception1', conv3, 8, 2, phase_train=phase_train, BN=False, relu=False)
 
     # The 4th layer
-    conv5 = sdn.residual_layer('Res3', conv4, 3, 128, 1, phase_train=phase_train, BN=False, relu=False, DSC=False)
+    conv5 = sdn.residual_layer('Res3', conv4, 3, 32, 1, phase_train=phase_train, BN=False, relu=False, DSC=False)
 
     # 5th layer
-    conv6 = sdn.residual_layer('Res4', conv5, 3, 128, 1, phase_train=phase_train, BN=True, relu=True, DSC=True)
+    conv6 = sdn.residual_layer('Res4', conv5, 3, 32, 1, phase_train=phase_train, BN=True, relu=True, DSC=True)
 
     # The Fc7 layer
-    fc7 = sdn.fc7_layer('FC7', conv6, 32, True, phase_train, FLAGS.dropout_factor, BN=False, override=3)
+    fc7 = sdn.fc7_layer('FC7', conv6, 8, True, phase_train, FLAGS.dropout_factor, BN=False, override=3, pad='SAME')
 
     # the softmax layer
     Logits = sdn.linear_layer('Softmax', fc7, FLAGS.num_classes)

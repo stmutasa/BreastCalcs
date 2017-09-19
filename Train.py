@@ -19,16 +19,16 @@ FLAGS = tf.app.flags.FLAGS
 # Define some of the immutable variables
 tf.app.flags.DEFINE_integer('num_epochs', 1200, """Number of epochs to run""")
 tf.app.flags.DEFINE_integer('num_classes', 2, """ Number of classes""")
-tf.app.flags.DEFINE_string('test_files', 'Fin', """Files for testing have this name""")
-tf.app.flags.DEFINE_integer('box_dims', 128, """dimensions of the input pictures""")
-tf.app.flags.DEFINE_integer('network_dims', 128, """the dimensions fed into the network""")
+tf.app.flags.DEFINE_string('test_files', '0', """Files for testing have this name""")
+tf.app.flags.DEFINE_integer('box_dims', 256, """dimensions of the input pictures""")
+tf.app.flags.DEFINE_integer('network_dims', 32, """the dimensions fed into the network""")
 tf.app.flags.DEFINE_integer('cross_validations', 5, """Save this number of buffers for cross validation""")
 
 # 258 / 65
-tf.app.flags.DEFINE_integer('epoch_size', 258, """How many images were loaded""")
-tf.app.flags.DEFINE_integer('print_interval', 6, """How often to print a summary to console during training""")
-tf.app.flags.DEFINE_integer('checkpoint_steps', 60, """How many STEPS to wait before saving a checkpoint""")
-tf.app.flags.DEFINE_integer('batch_size', 43, """Number of images to process in a batch.""")
+tf.app.flags.DEFINE_integer('epoch_size', 260, """How many images were loaded""")
+tf.app.flags.DEFINE_integer('print_interval', 13, """How often to print a summary to console during training""")
+tf.app.flags.DEFINE_integer('checkpoint_steps', 130, """How many STEPS to wait before saving a checkpoint""")
+tf.app.flags.DEFINE_integer('batch_size', 20, """Number of images to process in a batch.""")
 
 # Regularizers
 tf.app.flags.DEFINE_float('dropout_factor', 0.3, """ Keep probability""")
@@ -49,7 +49,7 @@ def train():
     with tf.Graph().as_default():
 
         # Get a dictionary of our images, id's, and labels here
-        images, validation = BreastMatrix.inputs(skip=True)
+        images, _ = BreastMatrix.inputs(skip=True)
 
         # Build a graph that computes the prediction from the inference model (Forward pass)
         logits, l2loss = BreastMatrix.forward_pass(images['image'], phase_train1=True)

@@ -10,6 +10,7 @@ import BreastCalcMatrix as BreastMatrix
 import numpy as np
 import tensorflow as tf
 import SODTester as SDT
+import pandas as pd
 
 _author_ = 'Simi'
 
@@ -18,17 +19,18 @@ FLAGS = tf.app.flags.FLAGS
 
 # Define some of the immutable variables
 tf.app.flags.DEFINE_string('train_dir', 'training/', """Directory to write event logs and save checkpoint files""")
-tf.app.flags.DEFINE_integer('epoch_size', 65, """Test examples: OF: 508""")
-tf.app.flags.DEFINE_integer('batch_size', 65, """Number of images to process in a batch.""")
+tf.app.flags.DEFINE_integer('epoch_size', 62, """Test examples: OF: 508""")
+tf.app.flags.DEFINE_integer('batch_size', 62, """Number of images to process in a batch.""")
 tf.app.flags.DEFINE_integer('num_classes', 2, """ Number of classes""")
-tf.app.flags.DEFINE_string('test_files', 'Fin', """Files for testing have this name""")
-tf.app.flags.DEFINE_integer('box_dims', 128, """dimensions of the input pictures""")
-tf.app.flags.DEFINE_integer('network_dims', 128, """the dimensions fed into the network""")
+tf.app.flags.DEFINE_string('test_files', '0', """Files for testing have this name""")
+tf.app.flags.DEFINE_integer('box_dims', 256, """dimensions of the input pictures""")
+tf.app.flags.DEFINE_integer('network_dims', 32, """the dimensions fed into the network""")
 
 # Hyperparameters:
 tf.app.flags.DEFINE_float('dropout_factor', 0.5, """ p value for the dropout layer""")
 tf.app.flags.DEFINE_float('l2_gamma', 1e-4, """ The gamma value for regularization loss""")
-tf.app.flags.DEFINE_float('loss_factor', 1.1, """Penalty for missing a class is this times more severe""")
+tf.app.flags.DEFINE_float('loss_factor', 5.0, """Penalty for missing a class is this times more severe""")
+
 
 # Define a custom training class
 def test():
@@ -38,7 +40,7 @@ def test():
     with tf.Graph().as_default(), tf.device('/cpu:0'):
 
         # Get a dictionary of our images, id's, and labels here
-        images, validation = BreastMatrix.inputs(skip=True)
+        _, validation = BreastMatrix.inputs(skip=True)
 
         # Build a graph that computes the prediction from the inference model (Forward pass)
         logits, l2loss = BreastMatrix.forward_pass(validation['image'], phase_train1=False)
@@ -111,11 +113,41 @@ def test():
                     while step < max_steps:
 
                         # Load some metrics for testing
-                        lbl1, logtz = mon_sess.run([labels, logits])
+                        lbl1, logtz, serz = mon_sess.run([labels, logits, validation['series']])
+
+                        # # Retreive and print the labels and logits
+                        lbl, logtz, serz = np.squeeze(lbl1), np.squeeze(logtz), np.squeeze(serz)
+                        data = {}
+
+                        # Add up all the logits in a dictoinary
+                        for z in range (FLAGS.batch_size):
+
+                            # If we already have the entry, append the second value
+                            if serz[z] in data: data[serz[z]]['log2'] = logtz[z]
+                            else: data[serz[z]] = {'label': lbl1[z], 'log1': [logtz[z]], 'log2': None, 'avg': None}
+
+                        # New Labels and logits
+                        logga, labba = [], []
+
+                        # Add together the data
+                        for idx, dic in data.items():
+
+                            # If we didnt populate the second one then make it equal to the first
+                            if dic['log2'] == None: dic['log2'] = dic['log1']
+
+                            # Now calculate the avg
+                            added = np.asarray(dic['log1']) + np.asarray(dic['log2'])
+
+                            # Create a new logits and label array
+                            labba.append(dic['label'])
+                            logga.append(added)
+
+                            # Add to dic
+                            dic['avg'] = np.squeeze(np.argmax(added))
 
                         # Calculate metrics
-                        sdt.calculate_metrics(logtz, lbl1, 1, step, True)
-                        #sdt.calculate_multiclass_metrics(logtz, lbl1, step, FLAGS.num_classes, False)
+                        #sdt.calculate_metrics(logtz, lbl1, 1, step, True)
+                        sdt.calculate_metrics(np.squeeze(np.asarray(logga)), np.squeeze(np.asarray(labba)), 1, step, True)
 
                         # Increment step
                         step += 1

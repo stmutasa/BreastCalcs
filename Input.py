@@ -3,6 +3,7 @@ import os, cv2, glob
 import numpy as np
 import tensorflow as tf
 from random import shuffle
+import matplotlib.pyplot as plt
 
 import SODLoader as SDL
 
@@ -15,54 +16,84 @@ sdl = SDL.SODLoader(os.getcwd())
 def pre_process(box_dims, xvals):
 
     # Retreive filenames data/raw/pure/Patient 41/2/ser32770img00005.dcm
-    filenames = sdl.retreive_filelist('dcm', include_subfolders=True, path = 'data/raw/')
+    filenames = []
+
+    # Search each folder for the files
+    pure_files = [x[0] for x in os.walk('data/raw/pure/')]
+    inv_files = [x[0] for x in os.walk('data/raw/invasive/')]
+    micro_files = [x[0] for x in os.walk('data/raw/microinvasion/')]
+
+    # Append each file into filenames
+    for z in range (len(pure_files)):
+        if len(pure_files[z].split('/')) != 4: continue
+        filenames.append(pure_files[z])
+
+    for z in range(len(inv_files)):
+        if len(inv_files[z].split('/')) != 4: continue
+        filenames.append(inv_files[z])
+
+    for z in range(len(micro_files)):
+        if len(micro_files[z].split('/')) != 4: continue
+        filenames.append(micro_files[z])
 
     # Shuffle filenames to create semi even protobufs
     shuffle(filenames)
-    print ('Files: ', filenames)
+    print(len(filenames), 'Files found: ', filenames)
 
     # Global variables
     index, filesave, pt = 0, 0, 0
     lab1, lab2 = 0, 0
     data = {}
+    display, unique_ID = [], []
 
     # Double the box size
-    box_dims *= 2
+    #box_dims *= 2
     print ('Box Dimensions: ', box_dims, 'From: ', box_dims/2)
+
+    # Single label files
+    singles = ['pure/Patient 55', 'invasive/Patient 36', 'invasive/Patient 50']
 
     for file in filenames:
 
-        # Directory name
-        dirname = os.path.dirname(file)
-
-        # Series
-        series = int(dirname.split('/')[-1])
-
-        # Skip the non mag views (series 1 and 2)
-        if int(series) < 3: continue
+        #  Skip non patient folders
+        if 'Patient' not in file: continue
 
         # Retreive the patient name
-        patient = int(dirname.split('/')[3].split(' ')[-1])
+        patient = int(file.split('/')[3].split(' ')[-1])
 
         # Retreive the type of invasion
-        invasion = dirname.split('/')[2]
+        invasion = file.split('/')[2]
 
         # Dir data/raw/invasive/Patient 53/3, ser 3, pt 53, inv invasive, root Patient 53
-        dirname = dirname[:-2]
-        label_file = (dirname + '/%s-%s.nii.gz' %(patient, series))
+        label_file = (file + '/%s-3.nii.gz' %patient)
+        label_file2 = (file + '/%s-4.nii.gz' %patient)
 
-        # Load the dicom
-        image, acc, dims, window = sdl.load_DICOM_2D(file)
+        # Load the files
+        image_file = sdl.retreive_filelist('dcm', False, path = (file + '/3'))
+        image_file2 = sdl.retreive_filelist('dcm', False, path=(file + '/4'))
+
+        # Load the 1st dicom
+        image, acc, dims, window = sdl.load_DICOM_2D(image_file2[0])
 
         # Load the label
-        segments = np.squeeze(sdl.load_NIFTY(label_file))
+        segments = np.squeeze(sdl.load_NIFTY(label_file2))
 
         # Flip x and Y
         segments = np.squeeze(sdl.reshape_NHWC(segments, False))
 
-        # # Test TODO
-        # print('Dir %s, ser %s, pt %s, inv %s, root %s, img %s, seg %s' %
-        #       (label_file, series, patient, invasion, root, image.shape, segments.shape))
+        # If this is one of the exceptions with only one series...
+        if (invasion + '/' + file.split('/')[3]) in singles:
+
+            # Just copy it...
+            image2, acc2, dims2, window2 = np.copy(image), acc, dims, window
+            segments2 = np.copy(segments)
+
+        else:
+
+            # Load the 2nd dicom and labels
+            image2, acc2, dims2, window2 = sdl.load_DICOM_2D(image_file[0])
+            segments2 = np.squeeze(sdl.load_NIFTY(label_file))
+            segments2 = np.squeeze(sdl.reshape_NHWC(segments2, False))
 
         # Assign labels
         if 'invasive' in invasion: label = 0
@@ -72,32 +103,46 @@ def pre_process(box_dims, xvals):
         # Second labels
         if label < 2:
             label2 = 0
-            lab2 += 2
+            lab2 += 4
         else:
             label2 = 1
-            lab1 += 1
+            lab1 += 2
 
         # Retreive the center of the largest label
         blob, cn = sdl.largest_blob(segments, image)
+        blob2, cn2 = sdl.largest_blob(segments2, image2)
 
         # Calculate a factor to make our image size, call this "radius"
-        radius = np.sum(blob)**(1/3)*10
+        radius, radius2 = np.sum(blob)**(1/3)*10, np.sum(blob2) ** (1 / 3) * 10
 
         # Make a 2dbox at the center of the label with size "radius" if scaled and 256 if not
         box_scaled, _ = sdl.generate_box(image, cn, int(radius)*2, dim3d=False)
         box_wide, _ = sdl.generate_box(image, cn, 512, dim3d=False)
+        box_scaled2, _ = sdl.generate_box(image2, cn2, int(radius2) * 2, dim3d=False)
+        box_wide2, _ = sdl.generate_box(image2, cn2, 512, dim3d=False)
 
         # Resize image
         box_scaled = cv2.resize(box_scaled, (box_dims, box_dims))
         box_wide = cv2.resize(box_wide, (box_dims, box_dims))
+        box_scaled2 = cv2.resize(box_scaled2, (box_dims, box_dims))
+        box_wide2 = cv2.resize(box_wide2, (box_dims, box_dims))
+
+        # Test: TODO
+        if label != 2: continue
+        sdl.display_single_image(box_scaled, False, label)
+        display.append([box_scaled])
 
         # Save the boxes in one
         box = np.zeros(shape=(box_dims, box_dims, 2)).astype(np.float32)
         box[:, :, 0] = box_scaled
         box[:, :, 1] = box_wide
+        box2 = np.zeros(shape=(box_dims, box_dims, 2)).astype(np.float32)
+        box2[:, :, 0] = box_scaled2
+        box2[:, :, 1] = box_wide2
 
         # Normalize the boxes
         box = (box - 2160.61) / 555.477
+        box2 = (box2 - 2160.61) / 555.477
 
         # Set how many to iterate through
         num_examples = int(2 - label2)
@@ -107,19 +152,24 @@ def pre_process(box_dims, xvals):
 
             # Generate the dictionary
             data[index] = {'data': box, 'label': label, 'label2': label2, 'patient': int(patient),
-                    'series': int(series), 'invasion': invasion, 'box_x': cn[0], 'box_y': cn[1], 'box_size': radius}
+                    'series': file, 'invasion': invasion, 'box_x': cn[0], 'box_y': cn[1], 'box_size': radius}
 
             # Append counter
             index += 1
 
-            # Summary
-            if index % 100 == 0: print (index, " Patient's loaded ", patient , series, label, label2, invasion, radius)
+            # Generate the dictionary
+            data[index] = {'data': box2, 'label': label, 'label2': label2, 'patient': int(patient),
+                           'series': file, 'invasion': invasion, 'box_x': cn2[0], 'box_y': cn2[1], 'box_size': radius2}
+
+            # Append counter
+            index += 1
 
         # Finish this example of this patient
         pt +=1
+        if pt > 16: break
 
         # Save if multiples of 49
-        if pt % (243/xvals) == 0:
+        if pt % int(125/xvals) == 0:
 
             # Now create a protocol buffer
             print('Creating a protocol buffer... %s examples from %s patients loaded, Invasive %s, Pure DCIS: %s'
@@ -142,6 +192,7 @@ def pre_process(box_dims, xvals):
 
             # Trackers
             filesave += 1
+            lab1, lab2 = 0, 0
 
             # Garbage
             del data
@@ -150,8 +201,12 @@ def pre_process(box_dims, xvals):
 
     # Finished all patients
 
+    # Test TODO:
+    #display.append(box_scaled)
+    plt.show()
+    #sdl.display_mosaic(display, True, title='Class1', cmap='gray')
+
     # Now create a protocol buffer
-    print (lab1, lab2, index)
     print('Creating final protocol buffer... %s examples from %s patients loaded, Invasive %s, Pure DCIS: %s'
           % (index, pt, lab2, lab1))
 
@@ -368,8 +423,8 @@ def load_protobuf():
     # Cast all our data to 32 bit floating point units. Cannot convert string to number unless you use that function
     id = tf.cast(features['id'], tf.float32)
     invasion = tf.cast(features['invasion'], tf.string)
+    series = tf.cast(features['series'], tf.string)
     patient = tf.string_to_number(features['patient'], tf.float32)
-    series = tf.string_to_number(features['series'], tf.float32)
     label = tf.string_to_number(features['label'], tf.float32)
     label2 = tf.string_to_number(features['label2'], tf.float32)
 
@@ -458,8 +513,8 @@ def load_validation_set():
     # Cast all our data to 32 bit floating point units. Cannot convert string to number unless you use that function
     id = tf.cast(features['id'], tf.float32)
     invasion = tf.cast(features['invasion'], tf.string)
+    series = tf.cast(features['series'], tf.string)
     patient = tf.string_to_number(features['patient'], tf.float32)
-    series = tf.string_to_number(features['series'], tf.float32)
     label = tf.string_to_number(features['label'], tf.float32)
     label2 = tf.string_to_number(features['label2'], tf.float32)
 
@@ -682,3 +737,5 @@ def pre_process_adh(box_dims, xvals):
 
     # Close the file after writing
     writer.close()
+
+pre_process(256, 5)
