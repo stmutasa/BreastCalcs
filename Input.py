@@ -429,6 +429,7 @@ def pre_process_adh(box_dims, xvals):
     lab1, lab2 = 0, 0
     data = {}
     display, unique_ID = [], []
+    mean, std = 0,0
 
     # Double the box size
     box_dims *= 2
@@ -537,7 +538,7 @@ def pre_process_adh(box_dims, xvals):
             lab2 += 2
         else:
             label2 = 1
-            lab1 += 2
+            lab1 += 4
 
         # Retreive the center of the largest label
         blob, cn = sdl.largest_blob(segments, image)
@@ -567,8 +568,14 @@ def pre_process_adh(box_dims, xvals):
         box2[:, :, 1] = box_wide2
 
         # Normalize the boxes
-        box = (box - 2160.61) / 555.477
-        box2 = (box2 - 2160.61) / 555.477
+        # scaled: Mean 2176.87447507, Std: 189.829622824
+        # Wide: Mean 2176.05169742, Std: 191.406008206
+        box = (box - 2176.8745) / 189.8296
+        box2 = (box2 - 2176.8745) / 189.8296
+
+        # For calculating Mean and STD
+        mean += (np.mean(box_scaled) + np.mean(box_scaled2))/2
+        std += (np.std(box_scaled) + np.std(box_scaled2))/2
 
         # Set how many to iterate through
         num_examples = int(1 + label2)
@@ -595,7 +602,7 @@ def pre_process_adh(box_dims, xvals):
         pt += 1
 
         # Save the protobufs
-        if pt % 4 == 0:
+        if pt % 38 == 0:
 
             # Now create a protocol buffer
             print('Creating a protocol buffer... %s examples from %s patients loaded, DCIS %s, ADH: %s'
@@ -623,4 +630,8 @@ def pre_process_adh(box_dims, xvals):
             del data
             data = {}
 
-pre_process_adh(256, 5)
+    # Now create a protocol buffer
+    print('Complete... %s examples from %s patients loaded' % (index, pt))
+
+    # Print mean and STD
+    print ('Mean %s, Std: %s' %((mean/pt), (std/pt)))
