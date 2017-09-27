@@ -226,158 +226,6 @@ def pre_process(box_dims, xvals):
     writer.close()
 
 
-def pre_process_fresh(box_dims, xvals):
-
-    # Retreive filenames data/raw/pure/Patient 41/2/ser32770img00005.dcm
-    filenames = sdl.retreive_filelist('dcm', include_subfolders=True, path = 'data/raw/')
-    print ('Files: ', filenames)
-
-    # Global variables
-    index, lab1, lab2, filesave = 0, 0, 0, 0
-    data = {}
-
-    # Double the box size
-    box_dims *= 2
-    print ('Box Dimensions: ', box_dims, 'From: ', box_dims/2)
-
-    for file in filenames:
-
-        # Directory name
-        dirname = os.path.dirname(file)
-
-        # Series
-        series = int(dirname.split('/')[-1])
-
-        # Skip the non mag views (series 1 and 2)
-        if int(series) < 3: continue
-
-        # Retreive the patient name
-        patient = int(dirname.split('/')[3].split(' ')[-1])
-
-        # Retreive the type of invasion
-        invasion = dirname.split('/')[2]
-
-        # Retreive the root folder
-        root = dirname.split('/')[-2]
-
-        # Skip files: 57-3	9-3	2-4	7-4	7-3	3-4	8-3
-        if (patient==7): continue
-        elif (patient==57 and series==3) : continue
-        elif (patient==9 and series==3) : continue
-        elif (patient==3 and series==4) : continue
-        elif (patient==8 and series==3)  : continue
-        elif (patient == 2 and series == 4): continue
-
-        # Load the dicom
-        image, acc, dims, window = sdl.load_DICOM_2D(file)
-
-        # now load the annotations
-        for file2 in sdl.retreive_filelist('gz', include_subfolders=True, path = 'data/raw/'):
-
-            # Skip if not the right patient or type (some patients have multiple types
-            if (root not in file2) or (invasion not in file2): continue
-
-            # Skip if not the right label
-            if series != int(file2[-8]): continue
-
-            # This is the one, load the label
-            segments = np.squeeze(sdl.load_NIFTY(file2))
-
-            # Flip x and Y
-            segments = np.squeeze(sdl.reshape_NHWC(segments, False))
-
-        # Should have everything loaded by now, implement error checking here
-
-        # Assign labels
-        if 'invasive' in invasion: label = 0
-        elif 'micro' in invasion:  label = 1
-        else: label = 2
-
-        # Second labels
-        if label < 2:
-            label2 = 0
-            lab2 += 3
-        else:
-            label2 = 1
-            lab1 += 2
-
-        # Retreive the center of the largest label
-        blob, cn = sdl.largest_blob(segments, image)
-
-        # Calculate a factor to make our image size, call this "radius"
-        radius = np.sum(blob)**(1/3)*10
-
-        # Make a 2dbox at the center of the label with size "radius" if scaled and 256 if not
-        box_scaled, _ = sdl.generate_box(image, cn, int(radius)*2, dim3d=False)
-        box_wide, _ = sdl.generate_box(image, cn, 512, dim3d=False)
-
-        # Resize image
-        box_scaled = cv2.resize(box_scaled, (box_dims, box_dims))
-        box_wide = cv2.resize(box_wide, (box_dims, box_dims))
-
-        # Save the boxes in one
-        box = np.zeros(shape=(box_dims, box_dims, 2)).astype(np.float32)
-        box[:, :, 0] = box_scaled
-        box[:, :, 1] = box_wide
-
-        # Set how many to iterate through
-        num_examples = int(3 - label2)
-
-        # Generate X examples
-        for i in range (num_examples):
-
-            # Generate the dictionary
-            data[index] = {'data': box, 'label': label, 'label2': label2, 'patient': int(patient),
-                    'series': int(series), 'invasion': invasion, 'box_x': cn[0], 'box_y': cn[1], 'box_size': radius}
-
-            # Append counter
-            index += 1
-
-            # Summary
-            if index % 10 == 0: print (index, " Patient's loaded ", patient , series, label, label2, invasion, radius)
-
-        # Finish this example of this patient
-
-    # Finished all patients
-
-    # Now create a protocol buffer
-    print('Creating final protocol buffer... %s patients loaded, Box Dimensions: %s' %(len(data), box_dims))
-    print ('Invasive %s, Pure DCIS: %s' %(lab2, lab1))
-
-    # Initialize normalization images array
-    normz = np.zeros(shape=(len(data), box_dims, box_dims, 2), dtype=np.float32)
-
-    # Normalize all the images. First retreive the images
-    for key, dict in data.items(): normz[key, :, :, :] = dict['data']
-
-    # Now normalize the whole batch
-    print('Batch Norm: %s , Batch STD: %s' % (np.mean(normz), np.std(normz)))
-    normz = sdl.normalize(normz, True, 0.01)
-
-    # Return the normalized images to the dictionary
-    for key, dict in data.items(): dict['data'] = normz[key]
-
-    # generate x number of writers depending on the cross validations
-    writer = []
-
-    # Open the file writers
-    for z in range(xvals): writer.append(tf.python_io.TFRecordWriter(os.path.join(('data/Data%s' %z) + '.tfrecords')))
-
-    # Loop through each example and append the protobuf with the specified features
-    z=0
-    for key, values in data.items():
-
-        # Serialize to string
-        example = tf.train.Example(features=tf.train.Features(feature=sdl.create_feature_dict(values, key)))
-
-        # Save this index as a serialized string in the protobuf
-        writer[(z%xvals)].write(example.SerializeToString())
-        z += 1
-
-    # Close the file after writing
-    for y in range (xvals): writer[y].close()
-
-
 def load_protobuf():
     """
     Loads the protocol buffer into a form to send to shuffle
@@ -547,159 +395,217 @@ def load_validation_set():
 def pre_process_adh(box_dims, xvals):
 
     # Retreive filenames data/raw/pure/Patient 41/2/ser32770img00005.dcm
-    adh_files = sdl.retreive_filelist('nii.gz', include_subfolders=True, path = 'data/raw/ADH/')
-    filenames1 = sdl.retreive_filelist('dcm', include_subfolders=True, path='data/raw/')
     filenames = []
 
-    # Remove ADH files from filenames
-    for i in range(len(filenames1)):
-        if 'ADH' not in filenames1[i]: filenames.append(filenames1[i])
+    # Search each folder for the files
+    pure_files = [x[0] for x in os.walk('data/raw/pure/')]
+    inv_files = [x[0] for x in os.walk('data/raw/invasive/')]
+    micro_files = [x[0] for x in os.walk('data/raw/microinvasion/')]
+    adh_files = [x[0] for x in os.walk('data/raw/ADH/')]
 
-    # Append and shuffle filenames to create semi even protobufs
-    filenames.extend(adh_files)
+    # Append each file into filenames
+    for z in range (len(pure_files)):
+        if len(pure_files[z].split('/')) != 4: continue
+        filenames.append(pure_files[z])
+
+    for z in range(len(inv_files)):
+        if len(inv_files[z].split('/')) != 4: continue
+        filenames.append(inv_files[z])
+
+    for z in range(len(micro_files)):
+        if len(micro_files[z].split('/')) != 4: continue
+        filenames.append(micro_files[z])
+
+    for z in range(len(adh_files)):
+        if len(adh_files[z].split('/')) != 4: continue
+        filenames.append(adh_files[z])
+
+    # Shuffle filenames to create semi even protobufs
     shuffle(filenames)
-    print (len(filenames), 'Files: ', filenames)
+    print(len(filenames), 'Files found: ', filenames)
 
     # Global variables
     index, filesave, pt = 0, 0, 0
     lab1, lab2 = 0, 0
     data = {}
+    display, unique_ID = [], []
 
     # Double the box size
     box_dims *= 2
     print ('Box Dimensions: ', box_dims, 'From: ', box_dims/2)
 
+    # Single label files
+    singles = ['pure/Patient 55', 'invasive/Patient 36', 'invasive/Patient 50']
+
     for file in filenames:
+
+        #  Skip non patient folders
+        if 'Patient' not in file: continue
 
         # Different code for loading ADH files
         if 'ADH' in file:
 
-            # data/raw/ADH/Patient 60 YES/3/FINAL 20150708_092100ROUTINEs45994a000-label.nii.gz
-            dirname = os.path.dirname(file)
-
-            # Get series
-            series = int(dirname.split('/')[-1])
-
-            # Patient name
-            patient = int(dirname.split('/')[-2].split(' ')[1])
-
-            # Retreive the type of invasion
-            invasion = dirname.split('/')[2]
-
-            # file is the label file, now retreive image file
-            image_file = sdl.retreive_filelist('nii', False, dirname)[0]
-
-            # load the image
-            image = np.squeeze(sdl.load_NIFTY(image_file))
-
-            # Load segments
-            segments = np.squeeze(sdl.load_NIFTY(file))
-
-            # Some images have two channels for repeat mag views
-            if segments.shape[0] == 2:
-
-                # Make image equal the first channel
-                image = image[0]
-                segments = segments[0]
-
-        # Now load other files
-        else:
-
-            # Directory name
-            dirname = os.path.dirname(file)
-
-            # Series
-            series = int(dirname.split('/')[-1])
-
-            # Skip the non mag views (series 1 and 2)
-            if int(series) < 3: continue
-
             # Retreive the patient name
-            patient = int(dirname.split('/')[3].split(' ')[-1])
+            patient = int(file.split('/')[3].split(' ')[-2])
 
             # Retreive the type of invasion
-            invasion = dirname.split('/')[2]
+            invasion = file.split('/')[2]
 
             # Dir data/raw/invasive/Patient 53/3, ser 3, pt 53, inv invasive, root Patient 53
-            label_file = (dirname[:-2] + '/%s-%s.nii.gz' %(patient, series))
+            label_file = sdl.retreive_filelist('gz', False, path=(file + '/3'))[0]
+            label_file2 = sdl.retreive_filelist('gz', False, path=(file + '/4'))[0]
 
-            # Load the dicom
-            image, acc, dims, window = sdl.load_DICOM_2D(file)
+            # Load the files
+            image_file = sdl.retreive_filelist('dcm', False, path=(file + '/3'))[0]
+            image_file2 = sdl.retreive_filelist('dcm', False, path=(file + '/4'))[0]
+
+            # Load the 1st dicom
+            image, acc, dims, window = sdl.load_DICOM_2D(image_file2)
 
             # Load the label
-            segments = np.squeeze(sdl.load_NIFTY(label_file))
+            segments = np.squeeze(sdl.load_NIFTY(label_file2))
 
             # Flip x and Y
             segments = np.squeeze(sdl.reshape_NHWC(segments, False))
+
+            # If this is one of the exceptions with only one series...
+            try:
+
+                # Load the 2nd dicom and labels
+                image2, acc2, dims2, window2 = sdl.load_DICOM_2D(image_file)
+                segments2 = np.squeeze(sdl.load_NIFTY(label_file))
+                segments2 = np.squeeze(sdl.reshape_NHWC(segments2, False))
+
+            except:
+
+                # Likely no second, then just copy it...
+                image2, acc2, dims2, window2 = np.copy(image), acc, dims, window
+                segments2 = np.copy(segments)
+
+        # Now load other files
+
+        else:
+
+            # Retreive the patient name
+            patient = int(file.split('/')[3].split(' ')[-1])
+
+            # Retreive the type of invasion
+            invasion = file.split('/')[2]
+
+            # Dir data/raw/invasive/Patient 53/3, ser 3, pt 53, inv invasive, root Patient 53
+            label_file = (file + '/%s-3.nii.gz' % patient)
+            label_file2 = (file + '/%s-4.nii.gz' % patient)
+
+            # Load the files
+            image_file = sdl.retreive_filelist('dcm', False, path=(file + '/3'))
+            image_file2 = sdl.retreive_filelist('dcm', False, path=(file + '/4'))
+
+            # Load the 1st dicom
+            image, acc, dims, window = sdl.load_DICOM_2D(image_file2[0])
+
+            # Load the label
+            segments = np.squeeze(sdl.load_NIFTY(label_file2))
+
+            # Flip x and Y
+            segments = np.squeeze(sdl.reshape_NHWC(segments, False))
+
+            # If this is one of the exceptions with only one series...
+            if (invasion + '/' + file.split('/')[3]) in singles:
+
+                # Just copy it...
+                image2, acc2, dims2, window2 = np.copy(image), acc, dims, window
+                segments2 = np.copy(segments)
+
+            else:
+
+                # Load the 2nd dicom and labels
+                image2, acc2, dims2, window2 = sdl.load_DICOM_2D(image_file[0])
+                segments2 = np.squeeze(sdl.load_NIFTY(label_file))
+                segments2 = np.squeeze(sdl.reshape_NHWC(segments2, False))
 
         # All loaded, common pathway below
 
         # Assign labels
         if 'invasive' in invasion: label = 0
-        elif 'micro' in invasion:  label = 1
+        elif 'micro' in invasion: label = 1
         elif 'pure' in invasion: label = 2
         else: label = 3
 
-        # Second labels. ADH = 1, other = 2
+        # Second labels
         if label < 3:
             label2 = 0
-            lab2 += 1
+            lab2 += 2
         else:
             label2 = 1
             lab1 += 2
 
         # Retreive the center of the largest label
-        try: blob, cn = sdl.largest_blob(segments, image)
-        except: continue
+        blob, cn = sdl.largest_blob(segments, image)
+        blob2, cn2 = sdl.largest_blob(segments2, image2)
 
         # Calculate a factor to make our image size, call this "radius"
-        radius = np.sum(blob)**(1/3)*10
+        radius, radius2 = np.sum(blob) ** (1 / 3) * 10, np.sum(blob2) ** (1 / 3) * 10
 
-        # Make a 2dbox at the center of the label with size "radius" if scaled and 256 if not
-        box_scaled, _ = sdl.generate_box(image, cn, int(radius)*2, dim3d=False)
+        # Make a 2dbox at the center of the label
+        box_scaled, _ = sdl.generate_box(image, cn, int(radius) * 2, dim3d=False)
         box_wide, _ = sdl.generate_box(image, cn, 512, dim3d=False)
+        box_scaled2, _ = sdl.generate_box(image2, cn2, int(radius2) * 2, dim3d=False)
+        box_wide2, _ = sdl.generate_box(image2, cn2, 512, dim3d=False)
 
         # Resize image
         box_scaled = cv2.resize(box_scaled, (box_dims, box_dims))
         box_wide = cv2.resize(box_wide, (box_dims, box_dims))
+        box_scaled2 = cv2.resize(box_scaled2, (box_dims, box_dims))
+        box_wide2 = cv2.resize(box_wide2, (box_dims, box_dims))
 
         # Save the boxes in one
         box = np.zeros(shape=(box_dims, box_dims, 2)).astype(np.float32)
         box[:, :, 0] = box_scaled
         box[:, :, 1] = box_wide
+        box2 = np.zeros(shape=(box_dims, box_dims, 2)).astype(np.float32)
+        box2[:, :, 0] = box_scaled2
+        box2[:, :, 1] = box_wide2
 
         # Normalize the boxes
         box = (box - 2160.61) / 555.477
+        box2 = (box2 - 2160.61) / 555.477
 
         # Set how many to iterate through
         num_examples = int(1 + label2)
 
         # Generate X examples
-        for i in range (num_examples):
+        for i in range(num_examples):
 
             # Generate the dictionary
             data[index] = {'data': box, 'label': label, 'label2': label2, 'patient': int(patient),
-                    'series': int(series), 'invasion': invasion, 'box_x': cn[0], 'box_y': cn[1], 'box_size': radius}
+                           'series': file, 'invasion': invasion, 'box_x': cn[0], 'box_y': cn[1], 'box_size': radius}
 
             # Append counter
             index += 1
 
-        # Finish this example of this patient
-        pt +=1
+            # Generate the dictionary
+            data[index] = {'data': box2, 'label': label, 'label2': label2, 'patient': int(patient),
+                           'series': file, 'invasion': invasion, 'box_x': cn2[0], 'box_y': cn2[1],
+                           'box_size': radius2}
 
-        # Save if multiples of x
-        if pt % (380/xvals) == 0:
+            # Append counter
+            index += 1
+
+        # Finish this patient
+        pt += 1
+
+        # Save the protobufs
+        if pt % 4 == 0:
 
             # Now create a protocol buffer
-            print('Creating a protocol buffer... %s examples from %s patients loaded, Ductal %s, ADH: %s'
-                  %(len(data), pt, lab2, lab1))
+            print('Creating a protocol buffer... %s examples from %s patients loaded, DCIS %s, ADH: %s'
+                  % (len(data), pt, lab2, lab1))
 
             # Open the file writer
             writer = tf.python_io.TFRecordWriter(os.path.join(('data/Data%s' % filesave) + '.tfrecords'))
 
             # Loop through each example and append the protobuf with the specified features
             for key, values in data.items():
-
                 # Serialize to string
                 example = tf.train.Example(features=tf.train.Features(feature=sdl.create_feature_dict(values, key)))
 
@@ -711,31 +617,10 @@ def pre_process_adh(box_dims, xvals):
 
             # Trackers
             filesave += 1
+            lab1, lab2 = 0, 0
 
             # Garbage
             del data
             data = {}
 
-
-    # Finished all patients
-
-    # Now create a protocol buffer
-    print('Creating final protocol buffer (%s)... %s examples from %s patients loaded, Ductal %s, Pure ADH: %s'
-          % (len(data), index, pt, lab2, lab1))
-
-    # Open the file writer
-    writer = tf.python_io.TFRecordWriter(os.path.join(('data/DataFin') + '.tfrecords'))
-
-    # Loop through each example and append the protobuf with the specified features
-    for key, values in data.items():
-
-        # Serialize to string
-        example = tf.train.Example(features=tf.train.Features(feature=sdl.create_feature_dict(values, key)))
-
-        # Save this index as a serialized string in the protobuf
-        writer.write(example.SerializeToString())
-
-    # Close the file after writing
-    writer.close()
-
-pre_process(256, 5)
+pre_process_adh(256, 5)
