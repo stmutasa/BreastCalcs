@@ -19,7 +19,7 @@ FLAGS = tf.app.flags.FLAGS
 # Define some of the immutable variables
 tf.app.flags.DEFINE_integer('num_epochs', 1400, """Number of epochs to run""")
 tf.app.flags.DEFINE_integer('num_classes', 2, """ Number of classes""")
-tf.app.flags.DEFINE_string('test_files', '3', """Files for testing have this name""")
+tf.app.flags.DEFINE_string('test_files', '0', """Files for testing have this name""")
 tf.app.flags.DEFINE_integer('box_dims', 256, """dimensions of the input pictures""")
 tf.app.flags.DEFINE_integer('network_dims', 32, """the dimensions fed into the network""")
 tf.app.flags.DEFINE_integer('cross_validations', 5, """Save this number of buffers for cross validation""")
@@ -149,7 +149,7 @@ def train():
 
                         # Calculate how long to sleep
                         Epoch = int((step * FLAGS.batch_size) / FLAGS.epoch_size)
-                        sleep_time = int(Epoch / 100) + 2
+                        sleep_time = int(Epoch / 100) + 1
 
                         print('-' * 70)
                         print ('Saving... ', sleep_time)
