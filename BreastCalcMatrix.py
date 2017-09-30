@@ -60,7 +60,7 @@ def forward_pass(images, phase_train1=True):
     conv6 = sdn.residual_layer('Res4', conv5, 3, 32, 1, phase_train=phase_train, BN=True, relu=True, DSC=True)
 
     # The Fc7 layer
-    fc7 = sdn.fc7_layer('FC7', conv6, 8, True, phase_train, FLAGS.dropout_factor, BN=False, override=3, pad='SAME')
+    fc7 = sdn.fc7_layer('FC7', conv6, 8, True, phase_train, FLAGS.dropout_factor, BN=False, override=3, pad='VALID')
 
     # the softmax layer
     Logits = sdn.linear_layer('Softmax', fc7, FLAGS.num_classes)

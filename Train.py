@@ -17,27 +17,27 @@ _author_ = 'Simi'
 FLAGS = tf.app.flags.FLAGS
 
 # Define some of the immutable variables
-tf.app.flags.DEFINE_integer('num_epochs', 1200, """Number of epochs to run""")
+tf.app.flags.DEFINE_integer('num_epochs', 1400, """Number of epochs to run""")
 tf.app.flags.DEFINE_integer('num_classes', 2, """ Number of classes""")
-tf.app.flags.DEFINE_string('test_files', '0', """Files for testing have this name""")
+tf.app.flags.DEFINE_string('test_files', '3', """Files for testing have this name""")
 tf.app.flags.DEFINE_integer('box_dims', 256, """dimensions of the input pictures""")
 tf.app.flags.DEFINE_integer('network_dims', 32, """the dimensions fed into the network""")
 tf.app.flags.DEFINE_integer('cross_validations', 5, """Save this number of buffers for cross validation""")
 
 # 258 / 65
-tf.app.flags.DEFINE_integer('epoch_size', 260, """How many images were loaded""")
-tf.app.flags.DEFINE_integer('print_interval', 13, """How often to print a summary to console during training""")
-tf.app.flags.DEFINE_integer('checkpoint_steps', 130, """How many STEPS to wait before saving a checkpoint""")
-tf.app.flags.DEFINE_integer('batch_size', 20, """Number of images to process in a batch.""")
+tf.app.flags.DEFINE_integer('epoch_size', 420, """How many images were loaded""")
+tf.app.flags.DEFINE_integer('print_interval', 6, """How often to print a summary to console during training""")
+tf.app.flags.DEFINE_integer('checkpoint_steps', 120, """How many STEPS to wait before saving a checkpoint""")
+tf.app.flags.DEFINE_integer('batch_size', 70, """Number of images to process in a batch.""")
 
 # Regularizers
-tf.app.flags.DEFINE_float('dropout_factor', 0.3, """ Keep probability""")
+tf.app.flags.DEFINE_float('dropout_factor', 0.5, """ Keep probability""")
 tf.app.flags.DEFINE_float('l2_gamma', 1e-4, """ The gamma value for regularization loss""")
 tf.app.flags.DEFINE_float('moving_avg_decay', 0.998, """ The decay rate for the moving average tracker""")
-tf.app.flags.DEFINE_float('loss_factor', 5.0, """Penalty for missing a class is this times more severe""")
+tf.app.flags.DEFINE_float('loss_factor', 3.0, """Penalty for missing a class is this times more severe""")
 
 # Hyperparameters to control the learning rate
-tf.app.flags.DEFINE_float('learning_rate', 3e-3, """Initial learning rate""")
+tf.app.flags.DEFINE_float('learning_rate', 1e-3, """Initial learning rate""")
 tf.app.flags.DEFINE_float('beta1', 0.9, """ The beta 1 value for the adam optimizer""")
 tf.app.flags.DEFINE_float('beta2', 0.999, """ The beta 1 value for the adam optimizer""")
 
@@ -79,7 +79,7 @@ def train():
         var_restore = var_ema.variables_to_restore()
 
         # Initialize the saver
-        saver = tf.train.Saver(var_restore, max_to_keep=6)
+        saver = tf.train.Saver(var_restore, max_to_keep=10)
 
         # config Proto sets options for configuring the session like run on GPU, allocate GPU memory etc.
         with tf.Session() as mon_sess:
@@ -147,9 +147,12 @@ def train():
 
                     if step % FLAGS.checkpoint_steps == 0:
 
+                        # Calculate how long to sleep
+                        Epoch = int((step * FLAGS.batch_size) / FLAGS.epoch_size)
+                        sleep_time = int(Epoch / 100) + 2
+
                         print('-' * 70)
-                        print ('Saving...')
-                        Epoch = int((step*FLAGS.batch_size)/FLAGS.epoch_size)
+                        print ('Saving... ', sleep_time)
 
                         # Define the filename
                         file = ('Epoch_%s' % Epoch)
@@ -161,7 +164,7 @@ def train():
                         saver.save(mon_sess, checkpoint_file)
 
                         # Sleep an amount of time to let testing catch up
-                        time.sleep(7)
+                        time.sleep(sleep_time)
 
                     # Increment step
                     step += 1

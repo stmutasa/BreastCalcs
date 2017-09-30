@@ -19,17 +19,17 @@ FLAGS = tf.app.flags.FLAGS
 
 # Define some of the immutable variables
 tf.app.flags.DEFINE_string('train_dir', 'training/', """Directory to write event logs and save checkpoint files""")
-tf.app.flags.DEFINE_integer('epoch_size', 62, """Test examples: OF: 508""")
-tf.app.flags.DEFINE_integer('batch_size', 62, """Number of images to process in a batch.""")
+tf.app.flags.DEFINE_integer('epoch_size', 102, """Test examples: OF: 508""")
+tf.app.flags.DEFINE_integer('batch_size', 51, """Number of images to process in a batch.""")
 tf.app.flags.DEFINE_integer('num_classes', 2, """ Number of classes""")
-tf.app.flags.DEFINE_string('test_files', '0', """Files for testing have this name""")
+tf.app.flags.DEFINE_string('test_files', '3', """Files for testing have this name""")
 tf.app.flags.DEFINE_integer('box_dims', 256, """dimensions of the input pictures""")
 tf.app.flags.DEFINE_integer('network_dims', 32, """the dimensions fed into the network""")
 
 # Hyperparameters:
 tf.app.flags.DEFINE_float('dropout_factor', 0.5, """ p value for the dropout layer""")
 tf.app.flags.DEFINE_float('l2_gamma', 1e-4, """ The gamma value for regularization loss""")
-tf.app.flags.DEFINE_float('loss_factor', 5.0, """Penalty for missing a class is this times more severe""")
+tf.app.flags.DEFINE_float('loss_factor', 2.0, """Penalty for missing a class is this times more severe""")
 
 
 # Define a custom training class
@@ -123,8 +123,11 @@ def test():
                         for z in range (FLAGS.batch_size):
 
                             # If we already have the entry, append the second value
-                            if serz[z] in data: data[serz[z]]['log2'] = logtz[z]
-                            else: data[serz[z]] = {'label': lbl1[z], 'log1': [logtz[z]], 'log2': None, 'avg': None}
+                            if serz[z] in data:
+                                data[serz[z]]['log1'] += logtz[z]
+                                data[serz[z]]['tot'] += 1
+
+                            else: data[serz[z]] = {'label': lbl1[z], 'log1': [logtz[z]], 'tot': 1, 'avg': None}
 
                         # New Labels and logits
                         logga, labba = [], []
@@ -132,18 +135,15 @@ def test():
                         # Add together the data
                         for idx, dic in data.items():
 
-                            # If we didnt populate the second one then make it equal to the first
-                            if dic['log2'] == None: dic['log2'] = dic['log1']
-
                             # Now calculate the avg
-                            added = np.asarray(dic['log1']) + np.asarray(dic['log2'])
+                            avg = np.asarray(dic['log1'])/dic['tot']
 
                             # Create a new logits and label array
                             labba.append(dic['label'])
-                            logga.append(added)
+                            logga.append(avg)
 
                             # Add to dic
-                            dic['avg'] = np.squeeze(np.argmax(added))
+                            dic['avg'] = np.squeeze(np.argmax(avg))
 
                         # Calculate metrics
                         #sdt.calculate_metrics(logtz, lbl1, 1, step, True)
@@ -224,6 +224,9 @@ def test():
 
 
 def main(argv=None):  # pylint: disable=unused-argument
+    if tf.gfile.Exists('testing/'):
+        tf.gfile.DeleteRecursively('testing/')
+    tf.gfile.MakeDirs('testing/')
     test()
 
 
