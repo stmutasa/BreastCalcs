@@ -27,7 +27,7 @@ tf.app.flags.DEFINE_integer('box_dims', 256, """dimensions of the input pictures
 tf.app.flags.DEFINE_integer('network_dims', 32, """the dimensions fed into the network""")
 
 # Hyperparameters:
-tf.app.flags.DEFINE_float('dropout_factor', 0.5, """ p value for the dropout layer""")
+tf.app.flags.DEFINE_float('dropout_factor', 1.0, """ p value for the dropout layer""")
 tf.app.flags.DEFINE_float('l2_gamma', 1e-4, """ The gamma value for regularization loss""")
 tf.app.flags.DEFINE_float('loss_factor', 2.0, """Penalty for missing a class is this times more severe""")
 
@@ -42,8 +42,11 @@ def test():
         # Get a dictionary of our images, id's, and labels here
         _, validation = BreastMatrix.inputs(skip=True)
 
+        # Define phase of training
+        phase_train = tf.placeholder(tf.bool)
+
         # Build a graph that computes the prediction from the inference model (Forward pass)
-        logits, l2loss = BreastMatrix.forward_pass(validation['image'], phase_train1=False)
+        logits, l2loss = BreastMatrix.forward_pass(validation['image'], phase_train=phase_train)
 
         # To retreive labels
         labels = validation['label2']
@@ -113,7 +116,8 @@ def test():
                     while step < max_steps:
 
                         # Load some metrics for testing
-                        lbl1, logtz, serz = mon_sess.run([labels, logits, validation['series']])
+                        lbl1, logtz, serz = mon_sess.run([labels, logits, validation['series']],
+                                                         feed_dict={phase_train: False})
 
                         # # Retreive and print the labels and logits
                         lbl, logtz, serz = np.squeeze(lbl1), np.squeeze(logtz), np.squeeze(serz)
@@ -147,7 +151,7 @@ def test():
 
                         # Calculate metrics
                         #sdt.calculate_metrics(logtz, lbl1, 1, step, True)
-                        sdt.calculate_metrics(np.squeeze(np.asarray(logga)), np.squeeze(np.asarray(labba)), 1, step, True)
+                        sdt.calculate_metrics(np.squeeze(np.asarray(logga)), np.squeeze(np.asarray(labba)), 0, step, True)
 
                         # Increment step
                         step += 1
@@ -162,7 +166,7 @@ def test():
                     print ('------ Current Best AUC: %.4f (Epoch: %s) --------' %(best_MAE, best_epoch))
 
                     # Run a session to retrieve our summaries
-                    summary = mon_sess.run(all_summaries)
+                    summary = mon_sess.run(all_summaries, feed_dict={phase_train: False})
 
                     # Retreive step
                     try: step_retreived = int(int(Epoch) * 6)

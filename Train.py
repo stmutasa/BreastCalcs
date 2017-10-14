@@ -51,8 +51,11 @@ def train():
         # Get a dictionary of our images, id's, and labels here
         images, _ = BreastMatrix.inputs(skip=True)
 
+        # Define phase of training
+        phase_train = tf.placeholder(tf.bool)
+
         # Build a graph that computes the prediction from the inference model (Forward pass)
-        logits, l2loss = BreastMatrix.forward_pass(images['image'], phase_train1=True)
+        logits, l2loss = BreastMatrix.forward_pass(images['image'], phase_train=phase_train)
 
         # Labels
         labels = images['label2']
@@ -63,8 +66,12 @@ def train():
         # Add in L2 Regularization
         loss = tf.add(SCE_loss, l2loss, name='loss')
 
-        # Build the backprop graph to train the model with one batch and update the parameters (Backward pass)
-        train_op = BreastMatrix.backward_pass(loss)
+        # Update the moving average batch norm ops
+        extra_update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+
+        # Retreive the training operation with the applied gradients
+        with tf.control_dependencies(extra_update_ops):
+            train_op = BreastMatrix.backward_pass(loss)
 
         # Merge the summaries
         all_summaries = tf.summary.merge_all()
@@ -112,7 +119,7 @@ def train():
                     start_time = time.time()
 
                     # Run an iteration
-                    mon_sess.run(train_op)
+                    mon_sess.run(train_op, feed_dict={phase_train: True})
 
                     # Calculate Duration
                     duration = time.time() - start_time

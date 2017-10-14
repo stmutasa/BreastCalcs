@@ -24,7 +24,8 @@ tf.app.flags.DEFINE_string('data_dir', 'data/', """Path to the data directory.""
 sdn = SDN.SODMatrix()
 
 
-def forward_pass(images, phase_train1=True):
+def forward_pass(images, phase_train=True):
+
     """
     This function builds the network architecture and performs the forward pass
     Two main architectures depending on where to insert the inception or residual layer
@@ -34,8 +35,6 @@ def forward_pass(images, phase_train1=True):
     :return: l2: the value of the l2 loss
     """
 
-    # Set Phase train variable
-    phase_train = tf.Variable(phase_train1, trainable=False, dtype=tf.bool)
 
     # Images 0 is the scaled version, 1 is the regular
     img1, img2 = images[:, :, :, 1], images[:, :, :, 0]
