@@ -27,6 +27,45 @@ sdn = SDN.SODMatrix()
 def forward_pass(images, phase_train=True):
 
     """
+    Performs the forward pass
+    :param images: Input images
+    :param phase_train: Training or testign phase
+    :return:
+    """
+
+    # Images 0 is the scaled version, 1 is the regular
+    img1, img2 = images[:, :, :, 1], images[:, :, :, 0]
+    print (images, img1, img2)
+
+    # First layer is conv
+    conv = sdn.convolution('Conv1', tf.expand_dims(img2, -1), 3, 8, 1, phase_train=phase_train)
+    print('Input Images: ', images)
+
+    # Residual blocks
+    conv = sdn.residual_layer('Residual1', conv, 3, 16, 2, phase_train=phase_train)
+    conv = sdn.residual_layer('Residual2', conv, 3, 16, 1, phase_train=phase_train)
+    conv = sdn.residual_layer('Residual3', conv, 3, 32, 2, phase_train=phase_train)
+    conv = sdn.residual_layer('Residual4', conv, 3, 32, 1, phase_train=phase_train)
+    print('End Residual: ', conv)
+
+    # Inception layers start 4x4
+    conv = sdn.inception_layer('Inception5', conv, 64, S=2, phase_train=phase_train)
+    conv = sdn.inception_layer('Inception6', conv, 64, S=1, phase_train=phase_train)
+    conv = sdn.inception_layer('Inception7', conv, 64, S=1, phase_train=phase_train)
+    conv = sdn.inception_layer('Inception8', conv, 64, S=1, phase_train=phase_train)
+    print('End Inception', conv)
+
+    # Linear layers
+    fc = sdn.fc7_layer('FC', conv, 16, True, phase_train, FLAGS.dropout_factor, BN=True, override=3)
+    fc = sdn.linear_layer('Linear', fc, 8, False, phase_train, BN=True)
+    Logits = sdn.linear_layer('Output', fc, FLAGS.num_classes, False, phase_train, BN=False, relu=False, add_bias=False)
+
+    return Logits, sdn.calc_L2_Loss(FLAGS.l2_gamma)
+
+
+def forward_pass_old(images, phase_train=True):
+
+    """
     This function builds the network architecture and performs the forward pass
     Two main architectures depending on where to insert the inception or residual layer
     :param images: Images to analyze
@@ -141,21 +180,16 @@ def backward_pass(total_loss):
     tf.summary.scalar('Total_Loss', total_loss)
 
     # Compute the gradients. NAdam optimizer came in tensorflow 1.2
-    opt = tf.contrib.opt.NadamOptimizer(learning_rate=FLAGS.learning_rate, beta1=FLAGS.beta1,
-                                        beta2=FLAGS.beta2, epsilon=1e-8)
+    opt = tf.contrib.opt.NadamOptimizer(learning_rate=FLAGS.learning_rate, beta1=FLAGS.beta1, beta2=FLAGS.beta2, epsilon=1e-8)
 
     # Compute the gradients
     gradients = opt.compute_gradients(total_loss)
-
-    # clip the gradients
-    #gradients = [(tf.clip_by_value(grad, -1., 1.), var) for grad, var in gradients]
 
     # Apply the gradients
     train_op = opt.apply_gradients(gradients, global_step, name='train')
 
     # Add histograms for the trainable variables. i.e. the collection of variables created with Trainable=True
-    for var in tf.trainable_variables():
-        tf.summary.histogram(var.op.name, var)
+    for var in tf.trainable_variables(): tf.summary.histogram(var.op.name, var)
 
     # Maintain average weights to smooth out training
     variable_averages = tf.train.ExponentialMovingAverage(FLAGS.moving_avg_decay, global_step)
@@ -163,8 +197,7 @@ def backward_pass(total_loss):
     # Applies the average to the variables in the trainable ops collection
     variable_averages_op = variable_averages.apply(tf.trainable_variables())
 
-    with tf.control_dependencies([train_op, variable_averages_op]):  # Wait until we apply the gradients
-        dummy_op = tf.no_op(name='train')  # Does nothing. placeholder to control the execution of the graph
+    with tf.control_dependencies([train_op, variable_averages_op]):  dummy_op = tf.no_op(name='train')  #
 
     return dummy_op
 

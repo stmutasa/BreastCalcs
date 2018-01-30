@@ -4,13 +4,18 @@ import numpy as np
 import tensorflow as tf
 from random import shuffle
 import matplotlib.pyplot as plt
+from pathlib import Path
 
 import SODLoader as SDL
 
 # Define the FLAGS class to hold our immutable global variables
 FLAGS = tf.app.flags.FLAGS
 
-sdl = SDL.SODLoader(os.getcwd())
+# Define the data directory to use
+home_dir = str(Path.home()) + '/PycharmProjects/Datasets'
+data_dir = home_dir + '/BreastData/Mammo/Calcs'
+
+sdl = SDL.SODLoader(data_root=data_dir)
 
 
 def pre_process(box_dims, xvals):
@@ -238,80 +243,48 @@ def load_protobuf():
     filenames = []
 
     # Define the filenames to remove
-    for i in range (0, len(filenames1)):
+    for i in range(0, len(filenames1)):
         if FLAGS.test_files not in filenames1[i]:
             filenames.append(filenames1[i])
 
     # Show the file names
     print('Training files: %s' % filenames)
 
-    # now load the remaining files
-    filename_queue = tf.train.string_input_producer(filenames, num_epochs=None)
-
-    reader = tf.TFRecordReader()  # Instantializes a TFRecordReader which outputs records from a TFRecords file
-    _, serialized_example = reader.read(filename_queue)  # Returns the next record (key:value) produced by the reader
-
-    # Restore the feature dictionary to store the variables we will retrieve using the parse
-    feature_dict = {'id': tf.FixedLenFeature([], tf.int64), 'data': tf.FixedLenFeature([], tf.string),
-                    'patient': tf.FixedLenFeature([], tf.string), 'series': tf.FixedLenFeature([], tf.string),
-                    'label': tf.FixedLenFeature([], tf.string), 'label2': tf.FixedLenFeature([], tf.string),
-                    'invasion': tf.FixedLenFeature([], tf.string), 'box_y': tf.FixedLenFeature([], tf.string),
-                    'box_x': tf.FixedLenFeature([], tf.string), 'box_size': tf.FixedLenFeature([], tf.string)}
-
-    # Parses one protocol buffer file into the features dictionary which maps keys to tensors with the data
-    features = tf.parse_single_example(serialized_example, features=feature_dict)
-
-    # Remember we saved a doubled box
-    box_dims = int(FLAGS.box_dims*2)
-
-    # Change the raw image data
-    image = tf.decode_raw(features['data'], tf.float32)
-    image = tf.reshape(image, shape=[box_dims, box_dims, 2])
-
-    # Cast all our data to 32 bit floating point units. Cannot convert string to number unless you use that function
-    id = tf.cast(features['id'], tf.float32)
-    invasion = tf.cast(features['invasion'], tf.string)
-    series = tf.cast(features['series'], tf.string)
-    patient = tf.string_to_number(features['patient'], tf.float32)
-    label = tf.string_to_number(features['label'], tf.float32)
-    label2 = tf.string_to_number(features['label2'], tf.float32)
-
-    # The box dimensions
-    box_x = tf.string_to_number(features['box_x'], tf.float32)
-    box_y = tf.string_to_number(features['box_y'], tf.float32)
-    box_size = tf.string_to_number(features['box_size'], tf.float32)
+    # Load the dictionary. Remember we saved a doubled box
+    data = sdl.load_tfrecords(filenames, FLAGS.box_dims*2, tf.float32, channels=2)
 
     # Image augmentation
-    angle = tf.random_uniform([1], -0.52, 0.52)
 
-    # First randomly rotate
-    image = tf.contrib.image.rotate(image, angle)
+    # Random contrast and brightness
+    data['data'] = tf.image.random_brightness(data['data'], max_delta=5)
+    data['data'] = tf.image.random_contrast(data['data'], lower=0.95, upper=1.05)
+
+    # Random gaussian noise
+    T_noise = tf.random_uniform([1], 0, 0.2)
+    noise = tf.random_uniform(shape=[FLAGS.box_dims*2, FLAGS.box_dims*2, 2], minval=-T_noise, maxval=T_noise)
+    data['data'] = tf.add(data['data'], tf.cast(noise, tf.float32))
+
+    # Randomly rotate
+    angle = tf.random_uniform([1], -0.52, 0.52)
+    data['data'] = tf.contrib.image.rotate(data['data'], angle)
 
     # Crop center
-    image = tf.image.central_crop(image, 0.55)
+    data['data'] = tf.image.central_crop(data['data'], 0.55)
 
     # Then randomly flip
-    image = tf.image.random_flip_left_right(tf.image.random_flip_up_down(image))
+    data['data'] = tf.image.random_flip_left_right(tf.image.random_flip_up_down(data['data']))
 
     # Random crop using a random resize
-    image = tf.random_crop(image, [FLAGS.box_dims, FLAGS.box_dims, 2])
+    data['data'] = tf.random_crop(data['data'], [FLAGS.box_dims, FLAGS.box_dims, 2])
 
     # Display the images
-    tf.summary.image('Train Norm IMG', tf.reshape(image[:, :, 0], shape=[1, FLAGS.box_dims, FLAGS.box_dims, 1]), 4)
-    tf.summary.image('Train Base IMG', tf.reshape(image[:, :, 1], shape=[1, FLAGS.box_dims, FLAGS.box_dims, 1]), 4)
+    tf.summary.image('Train Norm IMG', tf.reshape(data['data'][:, :, 0], shape=[1, FLAGS.box_dims, FLAGS.box_dims, 1]), 4)
+    tf.summary.image('Train Base IMG', tf.reshape(data['data'][:, :, 1], shape=[1, FLAGS.box_dims, FLAGS.box_dims, 1]), 4)
 
     # Reshape image
-    image = tf.image.resize_images(image, [FLAGS.network_dims, FLAGS.network_dims])
+    data['data'] = tf.image.resize_images(data['data'], [FLAGS.network_dims, FLAGS.network_dims])
 
-    # Return data as a dictionary
-    final_data = {'image': image, 'label': label, 'patient':patient, 'box_size': box_size,
-                  'label2': label2, 'invasion': invasion, 'series': series, 'box_loc': [box_y, box_x]}
-
-    returned_dict = {}
-    returned_dict['id'] = id
-    for key, feature in final_data.items():
-        returned_dict[key] = feature
-    return returned_dict
+    return data
 
 
 def load_validation_set():
@@ -332,92 +305,40 @@ def load_validation_set():
         if FLAGS.test_files in filenames1[i]:
             filenames.append(filenames1[i])
 
-    print ('Testing files: %s' %filenames)
+    print('Testing files: %s' % filenames)
 
-    # Load the filename queue
-    filename_queue = tf.train.string_input_producer(filenames, shuffle=False)
-
-    val_reader = tf.TFRecordReader()  # Instantializes a TFRecordReader which outputs records from a TFRecords file
-    _, serialized_example = val_reader.read(
-        filename_queue)  # Returns the next record (key:value) produced by the reader
-
-    # Restore the feature dictionary to store the variables we will retrieve using the parse
-    feature_dict = {'id': tf.FixedLenFeature([], tf.int64), 'data': tf.FixedLenFeature([], tf.string),
-                    'patient': tf.FixedLenFeature([], tf.string), 'series': tf.FixedLenFeature([], tf.string),
-                    'label': tf.FixedLenFeature([], tf.string), 'label2': tf.FixedLenFeature([], tf.string),
-                    'invasion': tf.FixedLenFeature([], tf.string), 'box_y': tf.FixedLenFeature([], tf.string),
-                    'box_x': tf.FixedLenFeature([], tf.string), 'box_size': tf.FixedLenFeature([], tf.string)}
-
-    # Parses one protocol buffer file into the features dictionary which maps keys to tensors with the data
-    features = tf.parse_single_example(serialized_example, features=feature_dict)
-
-    # Remember we saved a doubled box
-    box_dims = int(FLAGS.box_dims * 2)
-
-    # Change the raw image data
-    image = tf.decode_raw(features['data'], tf.float32)
-    image = tf.reshape(image, shape=[box_dims, box_dims, 2])
-
-    # Cast all our data to 32 bit floating point units. Cannot convert string to number unless you use that function
-    id = tf.cast(features['id'], tf.float32)
-    invasion = tf.cast(features['invasion'], tf.string)
-    series = tf.cast(features['series'], tf.string)
-    patient = tf.string_to_number(features['patient'], tf.float32)
-    label = tf.string_to_number(features['label'], tf.float32)
-    label2 = tf.string_to_number(features['label2'], tf.float32)
-
-    # The box dimensions
-    box_x = tf.string_to_number(features['box_x'], tf.float32)
-    box_y = tf.string_to_number(features['box_y'], tf.float32)
-    box_size = tf.string_to_number(features['box_size'], tf.float32)
+    # Load the dictionary
+    data = sdl.load_tfrecords(filenames, FLAGS.box_dims*2, channels=2)
 
     # Crop center
-    image = tf.image.central_crop(image, 0.5)
+    data['data'] = tf.image.central_crop(data['data'], 0.5)
 
     # Display the images
-    tf.summary.image('Test Norm IMG', tf.reshape(image[:, :, 0], shape=[1, FLAGS.box_dims, FLAGS.box_dims, 1]), 4)
-    tf.summary.image('Test Base IMG', tf.reshape(image[:, :, 1], shape=[1, FLAGS.box_dims, FLAGS.box_dims, 1]), 4)
+    tf.summary.image('Test Norm IMG', tf.reshape(data['data'][:, :, 0], shape=[1, FLAGS.box_dims, FLAGS.box_dims, 1]), 4)
+    tf.summary.image('Test Base IMG', tf.reshape(data['data'][:, :, 1], shape=[1, FLAGS.box_dims, FLAGS.box_dims, 1]), 4)
 
-    # Resize image
-    image = tf.image.resize_images(image, [FLAGS.network_dims, FLAGS.network_dims])
+    # Reshape image
+    data['data'] = tf.image.resize_images(data['data'], [FLAGS.network_dims, FLAGS.network_dims])
 
-    # Return data as a dictionary
-    final_data = {'image': image, 'label': label, 'patient': patient, 'box_size': box_size,
-                  'label2': label2, 'invasion': invasion, 'series': series, 'box_loc': [box_y, box_x]}
-
-    returned_dict = {}
-    returned_dict['id'] = id
-    for key, feature in final_data.items():
-        returned_dict[key] = feature
-    return returned_dict
+    return data
 
 
-def pre_process_adh(box_dims, xvals):
+def pre_process_adh_vs_pure(box_dims):
 
     # Retreive filenames data/raw/pure/Patient 41/2/ser32770img00005.dcm
     filenames = []
 
     # Search each folder for the files
-    pure_files = [x[0] for x in os.walk('data/raw/pure/')]
-    inv_files = [x[0] for x in os.walk('data/raw/invasive/')]
-    micro_files = [x[0] for x in os.walk('data/raw/microinvasion/')]
-    adh_files = [x[0] for x in os.walk('data/raw/ADH/')]
+    pure_files = [x[0] for x in os.walk(data_dir + '/pure/')]
+    adh_files = [x[0] for x in os.walk(data_dir + '/ADH/')]
 
     # Append each file into filenames
     for z in range (len(pure_files)):
-        if len(pure_files[z].split('/')) != 4: continue
+        if len(pure_files[z].split('/')) != 10: continue
         filenames.append(pure_files[z])
 
-    for z in range(len(inv_files)):
-        if len(inv_files[z].split('/')) != 4: continue
-        filenames.append(inv_files[z])
-
-    for z in range(len(micro_files)):
-        if len(micro_files[z].split('/')) != 4: continue
-        filenames.append(micro_files[z])
-
     for z in range(len(adh_files)):
-        if len(adh_files[z].split('/')) != 4: continue
+        if len(adh_files[z].split('/')) != 10: continue
         filenames.append(adh_files[z])
 
     # Shuffle filenames to create semi even protobufs
@@ -425,11 +346,8 @@ def pre_process_adh(box_dims, xvals):
     print(len(filenames), 'Files found: ', filenames)
 
     # Global variables
-    index, filesave, pt = 0, 0, 0
-    lab1, lab2 = 0, 0
-    data = {}
-    display, unique_ID = [], []
-    mean, std = 0,0
+    index, filesave, pt, lab1, lab2 = 0, 0, 0, 0, 0
+    data, display, unique_ID = {}, [], []
 
     # Double the box size
     box_dims *= 2
@@ -443,14 +361,14 @@ def pre_process_adh(box_dims, xvals):
         #  Skip non patient folders
         if 'Patient' not in file: continue
 
-        # Different code for loading ADH files
+        # Different code for loading ADH files: '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 1 YES'
         if 'ADH' in file:
 
-            # Retreive the patient name
-            patient = int(file.split('/')[3].split(' ')[-2])
+            # Retreive the patient name:
+            patient = int(file.split('/')[-1].split(' ')[-2])
 
             # Retreive the type of invasion
-            invasion = file.split('/')[2]
+            invasion = file.split('/')[-2]
 
             # Dir data/raw/invasive/Patient 53/3, ser 3, pt 53, inv invasive, root Patient 53
             label_file = sdl.retreive_filelist('gz', False, path=(file + '/3'))[0]
@@ -461,7 +379,7 @@ def pre_process_adh(box_dims, xvals):
             image_file2 = sdl.retreive_filelist('dcm', False, path=(file + '/4'))[0]
 
             # Load the 1st dicom
-            image, acc, dims, window = sdl.load_DICOM_2D(image_file2)
+            image, acc, dims, window, _ = sdl.load_DICOM_2D(image_file2)
 
             # Load the label
             segments = np.squeeze(sdl.load_NIFTY(label_file2))
@@ -473,7 +391,7 @@ def pre_process_adh(box_dims, xvals):
             try:
 
                 # Load the 2nd dicom and labels
-                image2, acc2, dims2, window2 = sdl.load_DICOM_2D(image_file)
+                image2, acc2, dims2, window2, _ = sdl.load_DICOM_2D(image_file)
                 segments2 = np.squeeze(sdl.load_NIFTY(label_file))
                 segments2 = np.squeeze(sdl.reshape_NHWC(segments2, False))
 
@@ -487,11 +405,11 @@ def pre_process_adh(box_dims, xvals):
 
         else:
 
-            # Retreive the patient name
-            patient = int(file.split('/')[3].split(' ')[-1])
+            # Retreive the patient name old: data/raw/pure/Patient 41/2/ser32770img00005.dcm
+            patient = int(file.split('/')[-1].split(' ')[-1])
 
             # Retreive the type of invasion
-            invasion = file.split('/')[2]
+            invasion = file.split('/')[-2]
 
             # Dir data/raw/invasive/Patient 53/3, ser 3, pt 53, inv invasive, root Patient 53
             label_file = (file + '/%s-3.nii.gz' % patient)
@@ -502,7 +420,7 @@ def pre_process_adh(box_dims, xvals):
             image_file2 = sdl.retreive_filelist('dcm', False, path=(file + '/4'))
 
             # Load the 1st dicom
-            image, acc, dims, window = sdl.load_DICOM_2D(image_file2[0])
+            image, acc, dims, window, _ = sdl.load_DICOM_2D(image_file2[0])
 
             # Load the label
             segments = np.squeeze(sdl.load_NIFTY(label_file2))
@@ -511,7 +429,7 @@ def pre_process_adh(box_dims, xvals):
             segments = np.squeeze(sdl.reshape_NHWC(segments, False))
 
             # If this is one of the exceptions with only one series...
-            if (invasion + '/' + file.split('/')[3]) in singles:
+            if (invasion + '/' + file.split('/')[-1]) in singles:
 
                 # Just copy it...
                 image2, acc2, dims2, window2 = np.copy(image), acc, dims, window
@@ -520,29 +438,27 @@ def pre_process_adh(box_dims, xvals):
             else:
 
                 # Load the 2nd dicom and labels
-                image2, acc2, dims2, window2 = sdl.load_DICOM_2D(image_file[0])
+                image2, acc2, dims2, window2, _ = sdl.load_DICOM_2D(image_file[0])
                 segments2 = np.squeeze(sdl.load_NIFTY(label_file))
                 segments2 = np.squeeze(sdl.reshape_NHWC(segments2, False))
 
         # All loaded, common pathway below
 
-        # Assign labels
-        if 'invasive' in invasion: label = 0
-        elif 'micro' in invasion: label = 1
-        elif 'pure' in invasion: label = 2
-        else: label = 3
+        # Fix weird segment shape where shape is yyy, 2, xxx
+        if segments.shape[1]==2: segments = segments[:, 1, :]
+        if segments2.shape[1] == 2: segments2 = segments2[:, 1, :]
 
-        # Second labels
-        if label < 3:
-            label2 = 0
-            lab2 += 2
+        # Assign labels
+        elif 'pure' in invasion:
+            label = 1
+            lab2 += 1
         else:
-            label2 = 1
-            lab1 += 4
+            label = 0
+            lab1 += 2
 
         # Retreive the center of the largest label
-        blob, cn = sdl.largest_blob(segments, image)
-        blob2, cn2 = sdl.largest_blob(segments2, image2)
+        blob, cn = sdl.largest_blob(segments)
+        blob2, cn2 = sdl.largest_blob(segments2)
 
         # Calculate a factor to make our image size, call this "radius"
         radius, radius2 = np.sum(blob) ** (1 / 3) * 10, np.sum(blob2) ** (1 / 3) * 10
@@ -567,33 +483,30 @@ def pre_process_adh(box_dims, xvals):
         box2[:, :, 0] = box_scaled2
         box2[:, :, 1] = box_wide2
 
-        # Normalize the boxes
-        # scaled: Mean 2176.87447507, Std: 189.829622824
-        # Wide: Mean 2176.05169742, Std: 191.406008206
-        box = (box - 2176.8745) / 189.8296
-        box2 = (box2 - 2176.8745) / 189.8296
-
-        # For calculating Mean and STD
-        mean += (np.mean(box_scaled) + np.mean(box_scaled2))/2
-        std += (np.std(box_scaled) + np.std(box_scaled2))/2
+        # Clip and normalize the boxes
+        box [box > 3500] = 3500
+        box2 [box2 >3500 ] = 3500
+        mean = (np.mean(box) + np.mean(box2)) / 2
+        std = (np.std(box) + np.std(box2)) / 2
+        box = (box - mean) / std
+        box2 = (box2 - mean) / std
 
         # Set how many to iterate through
-        num_examples = int(1 + label2)
+        num_examples = 1
 
         # Generate X examples
         for i in range(num_examples):
 
             # Generate the dictionary
-            data[index] = {'data': box, 'label': label, 'label2': label2, 'patient': int(patient),
-                           'series': file, 'invasion': invasion, 'box_x': cn[0], 'box_y': cn[1], 'box_size': radius}
+            data[index] = {'data': box.astype(np.float32), 'label': label, 'patient': int(patient), 'series': file, 'invasion': invasion,
+                           'box_x': cn[0], 'box_y': cn[1], 'box_size': radius}
 
             # Append counter
             index += 1
 
             # Generate the dictionary
-            data[index] = {'data': box2, 'label': label, 'label2': label2, 'patient': int(patient),
-                           'series': file, 'invasion': invasion, 'box_x': cn2[0], 'box_y': cn2[1],
-                           'box_size': radius2}
+            data[index] = {'data': box2.astype(np.float32), 'label': label, 'patient': int(patient), 'series': file, 'invasion': invasion,
+                           'box_x': cn2[0], 'box_y': cn2[1], 'box_size': radius2}
 
             # Append counter
             index += 1
@@ -602,36 +515,22 @@ def pre_process_adh(box_dims, xvals):
         pt += 1
 
         # Save the protobufs
-        if pt % 38 == 0:
+        if pt % 30 == 0:
 
-            # Now create a protocol buffer
-            print('Creating a protocol buffer... %s examples from %s patients loaded, DCIS %s, ADH: %s'
-                  % (len(data), pt, lab2, lab1))
-
-            # Open the file writer
-            writer = tf.python_io.TFRecordWriter(os.path.join(('data/Data%s' % filesave) + '.tfrecords'))
-
-            # Loop through each example and append the protobuf with the specified features
-            for key, values in data.items():
-                # Serialize to string
-                example = tf.train.Example(features=tf.train.Features(feature=sdl.create_feature_dict(values, key)))
-
-                # Save this index as a serialized string in the protobuf
-                writer.write(example.SerializeToString())
-
-            # Close the file after writing
-            writer.close()
+            # Now create a protocol buffer and save the data types
+            print('Creating a protocol buffer... %s examples from 30 patients loaded, DCIS %s, ADH: %s' % (len(data), lab2, lab1))
+            sdl.save_tfrecords(data, 1, file_root=('data/ADH_vs_Pure' + str(pt)))
 
             # Trackers
-            filesave += 1
             lab1, lab2 = 0, 0
 
             # Garbage
             del data
             data = {}
 
-    # Now create a protocol buffer
-    print('Complete... %s examples from %s patients loaded' % (index, pt))
+    # save last protobuf for stragglers
+    print('Creating a protocol buffer... %s examples from 29 patients loaded, DCIS %s, ADH: %s' % (len(data), lab2, lab1))
+    sdl.save_dict_filetypes(data[index - 1])
+    sdl.save_tfrecords(data, 1, file_root=('data/ADH_vs_Pure' + str(pt)))
 
-    # Print mean and STD
-    print ('Mean %s, Std: %s' %((mean/pt), (std/pt)))
+    print('Complete... %s examples from %s patients loaded' % (index, pt))
