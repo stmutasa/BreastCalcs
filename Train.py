@@ -21,7 +21,7 @@ FLAGS = tf.app.flags.FLAGS
 # Define some of the immutable variables
 tf.app.flags.DEFINE_integer('num_epochs', 1400, """Number of epochs to run""")
 tf.app.flags.DEFINE_integer('num_classes', 2, """ Number of classes""")
-tf.app.flags.DEFINE_string('test_files', '0', """Files for testing have this name""")
+tf.app.flags.DEFINE_string('test_files', '30', """Files for testing have this name""")
 tf.app.flags.DEFINE_integer('box_dims', 256, """dimensions of the input pictures""")
 tf.app.flags.DEFINE_integer('network_dims', 32, """the dimensions fed into the network""")
 tf.app.flags.DEFINE_integer('cross_validations', 5, """Save this number of buffers for cross validation""")
@@ -45,7 +45,7 @@ tf.app.flags.DEFINE_float('beta2', 0.999, """ The beta 1 value for the adam opti
 
 # Directory control
 tf.app.flags.DEFINE_string('train_dir', 'training/', """Directory to write event logs and save checkpoint files""")
-tf.app.flags.DEFINE_string('RunInfo', 'NEW/', """Unique file name for this training run""")
+tf.app.flags.DEFINE_string('RunInfo', 'Val0/', """Unique file name for this training run""")
 tf.app.flags.DEFINE_integer('GPU', 0, """Which GPU to use""")
 
 # Define a custom training class
@@ -98,8 +98,8 @@ def train():
 
         # Set the intervals
         max_steps = int((FLAGS.epoch_size / FLAGS.batch_size) * FLAGS.num_epochs)
-        print_interval = int((FLAGS.epoch_size / FLAGS.batch_size) * FLAGS.print_interval)
-        checkpoint_interval = int((FLAGS.epoch_size / FLAGS.batch_size) * FLAGS.checkpoint_interval)
+        print_interval = int((FLAGS.epoch_size / FLAGS.batch_size) * FLAGS.print_interval)+1
+        checkpoint_interval = int((FLAGS.epoch_size / FLAGS.batch_size) * FLAGS.checkpoint_interval)+1
         print('Max Steps: %s, Print Interval: %s, Checkpoint: %s' % (max_steps, print_interval, checkpoint_interval))
 
         # Allow memory placement growth
@@ -111,7 +111,7 @@ def train():
             mon_sess.run(var_init)
 
             # Initialize the handle to the summary writer in our training directory
-            summary_writer = tf.summary.FileWriter('training/Train', mon_sess.graph)
+            summary_writer = tf.summary.FileWriter(FLAGS.train_dir + FLAGS.RunInfo, mon_sess.graph)
 
             # Initialize the trackers
             accuracy, step = 0, 0
@@ -121,19 +121,16 @@ def train():
 
                 for step in range(max_steps):
 
-                    # Start the timer
-                    start_time = time.time()
-
                     # Run an iteration
+                    start_time = time.time()
                     mon_sess.run(train_op, feed_dict={phase_train: True})
-
-                    # Calculate Duration
                     duration = time.time() - start_time
+                    Epoch = int((step * FLAGS.batch_size) / FLAGS.epoch_size)
 
                     if step % print_interval == 0:  # This statement will print loss, step and other stuff
 
                         # Load some metrics
-                        lbl1, logtz, loss1, loss2, tot = mon_sess.run([labels, logits, SCE_loss, l2loss, loss])
+                        lbl1, logtz, loss1, loss2, tot = mon_sess.run([labels, logits, SCE_loss, l2loss, loss], feed_dict={phase_train: True})
 
                         # Calculate examples per second
                         eg_s = FLAGS.batch_size / duration
@@ -143,15 +140,14 @@ def train():
 
                         # Print the data
                         print ('-'*70)
-                        print('Step %d, L2 Loss: = %.3f (%.1f eg/s;), Total Loss: %.3f SCE: %.4f'
-                              % (step, loss2, eg_s, tot, loss1))
+                        print('Epoch %d, L2 Loss: = %.3f (%.1f eg/s;), Total Loss: %.3f SCE: %.4f' % (Epoch, loss2, eg_s, tot, loss1))
 
                         # Retreive and print the labels and logits
                         print('Labels: %s' % np.squeeze(lbl1.astype(np.int8))[:20])
                         print('Logits: %s' % np.squeeze(np.argmax(logtz.astype(np.float), axis=1))[:20])
 
                         # Run a session to retrieve our summaries
-                        summary = mon_sess.run(all_summaries)
+                        summary = mon_sess.run(all_summaries, feed_dict={phase_train: True})
 
                         # Add the summaries to the protobuf for Tensorboard
                         summary_writer.add_summary(summary, step)
@@ -160,23 +156,21 @@ def train():
                     if step % checkpoint_interval == 0:
 
                         # Calculate how long to sleep
-                        Epoch = int((step * FLAGS.batch_size) / FLAGS.epoch_size)
-                        sleep_time = int(Epoch / 100) + 1
+                        sleep_time = int(Epoch / 50) + 1
 
-                        print('-' * 70)
-                        print ('Saving... ', sleep_time)
+                        print('-' * 70, '\n %s: Saving... Epoch: %s, GPU: %s, File:%s' % (time.localtime(), Epoch, FLAGS.GPU, FLAGS.RunInfo[:-1]))
 
                         # Define the filename
                         file = ('Epoch_%s' % Epoch)
 
                         # Define the checkpoint file:
-                        checkpoint_file = os.path.join('training/', file)
+                        checkpoint_file = os.path.join(FLAGS.train_dir + FLAGS.RunInfo, file)
 
                         # Save the checkpoint
                         saver.save(mon_sess, checkpoint_file)
 
                         # Sleep an amount of time to let testing catch up
-                        time.sleep(sleep_time)
+                        if Epoch >= 600: time.sleep(sleep_time)
 
 
 def main(argv=None):  # pylint: disable=unused-argument
