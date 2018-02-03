@@ -208,7 +208,7 @@ def eval():
 
 
 def main(argv=None):
-    time.sleep(0)
+    time.sleep(100)
     eval()
 
 

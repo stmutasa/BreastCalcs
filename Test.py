@@ -21,7 +21,7 @@ FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_integer('epoch_size', 60, """Test examples: OF: 508""")
 tf.app.flags.DEFINE_integer('batch_size', 60, """Number of images to process in a batch.""")
 tf.app.flags.DEFINE_integer('num_classes', 2, """ Number of classes""")
-tf.app.flags.DEFINE_string('test_files', '30', """Files for testing have this name""")
+tf.app.flags.DEFINE_string('test_files', '90', """Files for testing have this name""")
 tf.app.flags.DEFINE_integer('box_dims', 256, """dimensions of the input pictures""")
 tf.app.flags.DEFINE_integer('network_dims', 32, """the dimensions fed into the network""")
 
@@ -33,7 +33,7 @@ tf.app.flags.DEFINE_float('moving_avg_decay', 0.998, """ The decay rate for the 
 
 # Directory control
 tf.app.flags.DEFINE_string('train_dir', 'training/', """Directory to write event logs and save checkpoint files""")
-tf.app.flags.DEFINE_string('RunInfo', 'Val0/', """Unique file name for this training run""")
+tf.app.flags.DEFINE_string('RunInfo', 'Val2/', """Unique file name for this training run""")
 tf.app.flags.DEFINE_integer('GPU', 0, """Which GPU to use""")
 
 
@@ -167,8 +167,8 @@ def eval():
                     summary = mon_sess.run(all_summaries, feed_dict={phase_train: False})
 
                     # Retreive step
-                    try: step_retreived = int(int(Epoch) * 6)
-                    except: step_retreived = 7200
+                    try: step_retreived = int(int(Epoch) * 1.875)
+                    except: step_retreived = 2625
 
                     # Add the summaries to the protobuf for Tensorboard
                     summary_writer.add_summary(summary, step_retreived)

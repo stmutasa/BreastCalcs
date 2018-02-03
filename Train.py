@@ -21,7 +21,7 @@ FLAGS = tf.app.flags.FLAGS
 # Define some of the immutable variables
 tf.app.flags.DEFINE_integer('num_epochs', 1400, """Number of epochs to run""")
 tf.app.flags.DEFINE_integer('num_classes', 2, """ Number of classes""")
-tf.app.flags.DEFINE_string('test_files', '30', """Files for testing have this name""")
+tf.app.flags.DEFINE_string('test_files', '90', """Files for testing have this name""")
 tf.app.flags.DEFINE_integer('box_dims', 256, """dimensions of the input pictures""")
 tf.app.flags.DEFINE_integer('network_dims', 32, """the dimensions fed into the network""")
 tf.app.flags.DEFINE_integer('cross_validations', 5, """Save this number of buffers for cross validation""")
@@ -45,7 +45,7 @@ tf.app.flags.DEFINE_float('beta2', 0.999, """ The beta 1 value for the adam opti
 
 # Directory control
 tf.app.flags.DEFINE_string('train_dir', 'training/', """Directory to write event logs and save checkpoint files""")
-tf.app.flags.DEFINE_string('RunInfo', 'Val0/', """Unique file name for this training run""")
+tf.app.flags.DEFINE_string('RunInfo', 'Val2/', """Unique file name for this training run""")
 tf.app.flags.DEFINE_integer('GPU', 0, """Which GPU to use""")
 
 # Define a custom training class
@@ -158,7 +158,7 @@ def train():
                         # Calculate how long to sleep
                         sleep_time = int(Epoch / 50) + 1
 
-                        print('-' * 70, '\n %s: Saving... Epoch: %s, GPU: %s, File:%s' % (time.localtime(), Epoch, FLAGS.GPU, FLAGS.RunInfo[:-1]))
+                        print('-' * 70, '\n %s: Saving... Epoch: %s, GPU: %s, File:%s' % (time.time(), Epoch, FLAGS.GPU, FLAGS.RunInfo[:-1]))
 
                         # Define the filename
                         file = ('Epoch_%s' % Epoch)
