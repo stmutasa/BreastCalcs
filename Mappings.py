@@ -57,7 +57,7 @@ def eval():
             phase_train = tf.placeholder(tf.bool)
 
             # To retreive labels
-            labels = validation['label']
+            labels = tf.one_hot(tf.cast(validation['label'], tf.uint8), 2)
             images = validation['data']
 
             # Build a graph that computes the prediction from the inference model (Forward pass)
