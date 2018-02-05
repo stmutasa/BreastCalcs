@@ -60,7 +60,7 @@ def forward_pass(images, phase_train=True):
     fc = sdn.linear_layer('Linear', fc, 8, False, phase_train, BN=True)
     Logits = sdn.linear_layer('Output', fc, FLAGS.num_classes, False, phase_train, BN=False, relu=False, add_bias=False)
 
-    return Logits, sdn.calc_L2_Loss(FLAGS.l2_gamma)
+    return Logits, sdn.calc_L2_Loss(FLAGS.l2_gamma), conv
 
 
 def forward_pass_old(images, phase_train=True):
@@ -210,7 +210,7 @@ def inputs(skip=False):
     if not skip:
 
         # Part 1: Load the raw images and save to protobuf
-        Input.pre_process(FLAGS.box_dims, FLAGS.cross_validations)
+        Input.pre_process_adh_vs_pure(FLAGS.box_dims)
 
     else:
         print('-------------------------Previously saved records found! Loading...')
@@ -219,10 +219,5 @@ def inputs(skip=False):
     print('----------------------------------------Loading Protobuff...')
     train = Input.load_protobuf()
     valid = Input.load_validation_set()
-
-    # Part 3: Create randomized batches
-    print('----------------------------------Creating and randomizing batches...')
-    train = Input.sdl.randomize_batches(train, FLAGS.batch_size)
-    valid = Input.sdl.val_batches(valid, FLAGS.batch_size)
 
     return train, valid

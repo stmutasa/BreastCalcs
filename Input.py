@@ -284,7 +284,7 @@ def load_protobuf():
     # Reshape image
     data['data'] = tf.image.resize_images(data['data'], [FLAGS.network_dims, FLAGS.network_dims])
 
-    return data
+    return sdl.randomize_batches(data, FLAGS.batch_size)
 
 
 def load_validation_set():
@@ -320,7 +320,7 @@ def load_validation_set():
     # Reshape image
     data['data'] = tf.image.resize_images(data['data'], [FLAGS.network_dims, FLAGS.network_dims])
 
-    return data
+    return sdl.val_batches(data, FLAGS.batch_size)
 
 
 def pre_process_adh_vs_pure(box_dims):
