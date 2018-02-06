@@ -83,11 +83,20 @@ def print_prob(prob, file_path):
 
 
 def visualize(image, conv_output, conv_grad, gb_viz, index, display):
+    """
+
+    :param image:
+    :param conv_output:
+    :param conv_grad:
+    :param gb_viz:
+    :param index:
+    :param display:
+    :return:
+    """
+
     output = conv_output  # [7,7,512]
     grads_val = conv_grad  # [7,7,512]
     print("grads_val shape:", grads_val.shape)
-    print("gb_viz shape:", gb_viz.shape)
-    display = []
 
     weights = np.mean(grads_val, axis=(0, 1))  # alpha_k, [512]
     cam = np.zeros(output.shape[0: 2], dtype=np.float32)  # [7,7]
@@ -100,26 +109,26 @@ def visualize(image, conv_output, conv_grad, gb_viz, index, display):
     cam = cam / np.max(cam)  # scale 0 to 1.0
     cam = resize(cam, (FLAGS.network_dims, FLAGS.network_dims), preserve_range=True)
 
+    # Generate image
     img = image.astype(float)
     img -= np.min(img)
     img /= img.max()
     if display: sdl.display_single_image(img[:, :, 0], False, ('Input Image', img.shape))
-    display.append(img[:, :, 0])
 
+    # Generate heatmap
     cam_heatmap = cv2.applyColorMap(np.uint8(255 * cam), cv2.COLORMAP_JET)
     cam_heatmap = cv2.cvtColor(cam_heatmap, cv2.COLOR_BGR2RGB)
     if display: sdl.display_single_image(cam_heatmap, True, ('Grad-CAM', cam_heatmap.shape))
-    display.append(cam_heatmap)
 
+    # Generate guided backprop mask
     gb_viz = np.dstack((gb_viz[:, :, 0]))
     gb_viz -= np.min(gb_viz)
     gb_viz /= gb_viz.max()
     if display: sdl.display_single_image(gb_viz[0], False, ('Guided Backprop', gb_viz.shape))
-    display.append(gb_viz[0])
 
+    # Generate guided grad cam
     gd_gb = np.dstack((gb_viz[0] * cam))
     if display: sdl.display_single_image(gd_gb[0], True, ('Guided Grad-CAM', gd_gb.shape))
-    display.append(gd_gb)
 
     # Save Data
     scipy.misc.imsave((FLAGS.train_dir + FLAGS.RunInfo + ('Visualizations/%s_img.png' % index)), img[:,:,0])
