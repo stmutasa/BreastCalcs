@@ -7,7 +7,6 @@ from __future__ import print_function  # use the print function from python 3
 import BreastCalcMatrix as BreastMatrix
 import numpy as np
 import tensorflow as tf
-import SODTester as SDT
 import tensorflow.contrib.slim as slim
 import utils
 
@@ -25,7 +24,7 @@ FLAGS = tf.app.flags.FLAGS
 
 # Define some of the immutable variables
 tf.app.flags.DEFINE_integer('epoch_size', 60, """Test examples: OF: 508""")
-tf.app.flags.DEFINE_integer('batch_size', 10, """Number of images to process in a batch.""")
+tf.app.flags.DEFINE_integer('batch_size', 5, """Number of images to process in a batch.""")
 tf.app.flags.DEFINE_integer('num_classes', 2, """ Number of classes""")
 tf.app.flags.DEFINE_string('test_files', '60', """Files for testing have this name""")
 tf.app.flags.DEFINE_integer('box_dims', 256, """dimensions of the input pictures""")
@@ -65,11 +64,10 @@ def eval():
 
             prob = tf.nn.softmax(logits)
             cost = (-1) * tf.reduce_sum(tf.multiply(labels, tf.log(prob)), axis=1)
-            print('cost:', cost)
 
             # gradient for partial linearization. We only care about target visualization class.
             y_c = tf.reduce_sum(tf.multiply(logits, labels), axis=1)
-            print('y_c:', y_c)
+
             # Get last convolutional layer gradient for generating gradCAM visualization
             target_conv_layer = conv
             target_conv_layer_grad = tf.gradients(y_c, target_conv_layer)[0]
@@ -95,20 +93,29 @@ def eval():
         sess.run(var_init)
 
         if ckpt and ckpt.model_checkpoint_path:
+
             # Restore the learned variables
             restorer = tf.train.import_meta_graph(ckpt.model_checkpoint_path + '.meta')
 
             # Restore the graph
             restorer.restore(sess, ckpt.model_checkpoint_path)
+            print('Graph Restored: ', ckpt.model_checkpoint_path)
 
-        prob, batch_img = sess.run([prob, images], feed_dict={phase_train: False})
+        # Start queues
+        with slim.queues.QueueRunners(sess):
 
-        gb_grad_value, target_conv_layer_value, target_conv_layer_grad_value = sess.run(
-            [gb_grad, target_conv_layer, target_conv_layer_grad], feed_dict={phase_train: False})
+            prob, batch_img = sess.run([prob, images], feed_dict={phase_train: False})
+            print ('Softmax: ', prob[0])
 
-        for i in range(FLAGS.batch_size):
-            utils.print_prob(prob[i], './synset.txt')
-            utils.visualize(batch_img[i], target_conv_layer_value[i], target_conv_layer_grad_value[i], gb_grad_value[i])
+            gb_grad_value, target_conv_layer_value, target_conv_layer_grad_value = sess.run(
+                [gb_grad, target_conv_layer, target_conv_layer_grad], feed_dict={phase_train: False})
+
+            # Create save dir
+            tf.gfile.MakeDirs(FLAGS.train_dir + FLAGS.RunInfo + 'Visualizations/')
+
+            for i in range(FLAGS.batch_size):
+                utils.print_prob(prob[i], 'data/synset.txt')
+                utils.visualize(batch_img[i], target_conv_layer_value[i], target_conv_layer_grad_value[i], gb_grad_value[i], i)
 
 
 def main(argv=None):

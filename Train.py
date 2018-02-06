@@ -61,7 +61,7 @@ def train():
         phase_train = tf.placeholder(tf.bool)
 
         # Build a graph that computes the prediction from the inference model (Forward pass)
-        logits, l2loss = BreastMatrix.forward_pass(images['data'], phase_train=phase_train)
+        logits, l2loss, _ = BreastMatrix.forward_pass(images['data'], phase_train=phase_train)
 
         # Labels
         labels = images['label']

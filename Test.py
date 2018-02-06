@@ -49,7 +49,7 @@ def eval():
         phase_train = tf.placeholder(tf.bool)
 
         # Build a graph that computes the prediction from the inference model (Forward pass)
-        logits, l2loss = BreastMatrix.forward_pass(validation['data'], phase_train=phase_train)
+        logits, l2loss, _ = BreastMatrix.forward_pass(validation['data'], phase_train=phase_train)
 
         # To retreive labels
         labels = validation['label']
