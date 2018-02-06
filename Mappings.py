@@ -24,11 +24,11 @@ FLAGS = tf.app.flags.FLAGS
 
 # Define some of the immutable variables
 tf.app.flags.DEFINE_integer('epoch_size', 60, """Test examples: OF: 508""")
-tf.app.flags.DEFINE_integer('batch_size', 5, """Number of images to process in a batch.""")
+tf.app.flags.DEFINE_integer('batch_size', 60, """Number of images to process in a batch.""")
 tf.app.flags.DEFINE_integer('num_classes', 2, """ Number of classes""")
 tf.app.flags.DEFINE_string('test_files', '60', """Files for testing have this name""")
 tf.app.flags.DEFINE_integer('box_dims', 256, """dimensions of the input pictures""")
-tf.app.flags.DEFINE_integer('network_dims', 32, """the dimensions fed into the network""")
+tf.app.flags.DEFINE_integer('network_dims', 128, """the dimensions fed into the network""")
 
 # Hyperparameters:
 tf.app.flags.DEFINE_float('dropout_factor', 1.0, """ p value for the dropout layer""")
@@ -38,7 +38,7 @@ tf.app.flags.DEFINE_float('moving_avg_decay', 0.998, """ The decay rate for the 
 
 # Directory control
 tf.app.flags.DEFINE_string('train_dir', 'testing/', """Directory to write event logs and save checkpoint files""")
-tf.app.flags.DEFINE_string('RunInfo', 'Val1/', """Unique file name for this training run""")
+tf.app.flags.DEFINE_string('RunInfo', 'Val1_128/', """Unique file name for this training run""")
 tf.app.flags.DEFINE_integer('GPU', 0, """Which GPU to use""")
 
 
@@ -115,7 +115,8 @@ def eval():
 
             for i in range(FLAGS.batch_size):
                 utils.print_prob(prob[i], 'data/synset.txt')
-                utils.visualize(batch_img[i], target_conv_layer_value[i], target_conv_layer_grad_value[i], gb_grad_value[i], i)
+                utils.visualize(batch_img[i], target_conv_layer_value[i], target_conv_layer_grad_value[i],
+                                gb_grad_value[i], i, False)
 
 
 def main(argv=None):

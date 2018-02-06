@@ -82,7 +82,7 @@ def print_prob(prob, file_path):
     return top1
 
 
-def visualize(image, conv_output, conv_grad, gb_viz, index):
+def visualize(image, conv_output, conv_grad, gb_viz, index, display):
     output = conv_output  # [7,7,512]
     grads_val = conv_grad  # [7,7,512]
     print("grads_val shape:", grads_val.shape)
@@ -103,22 +103,22 @@ def visualize(image, conv_output, conv_grad, gb_viz, index):
     img = image.astype(float)
     img -= np.min(img)
     img /= img.max()
-    sdl.display_single_image(img[:, :, 0], False, ('Input Image', img.shape))
+    if display: sdl.display_single_image(img[:, :, 0], False, ('Input Image', img.shape))
     display.append(img[:, :, 0])
 
     cam_heatmap = cv2.applyColorMap(np.uint8(255 * cam), cv2.COLORMAP_JET)
     cam_heatmap = cv2.cvtColor(cam_heatmap, cv2.COLOR_BGR2RGB)
-    sdl.display_single_image(cam_heatmap, True, ('Grad-CAM', cam_heatmap.shape))
+    if display: sdl.display_single_image(cam_heatmap, True, ('Grad-CAM', cam_heatmap.shape))
     display.append(cam_heatmap)
 
     gb_viz = np.dstack((gb_viz[:, :, 0]))
     gb_viz -= np.min(gb_viz)
     gb_viz /= gb_viz.max()
-    sdl.display_single_image(gb_viz[0], False, ('Guided Backprop', gb_viz.shape))
+    if display: sdl.display_single_image(gb_viz[0], False, ('Guided Backprop', gb_viz.shape))
     display.append(gb_viz[0])
 
     gd_gb = np.dstack((gb_viz[0] * cam))
-    sdl.display_single_image(gd_gb[0], True, ('Guided Grad-CAM', gd_gb.shape))
+    if display: sdl.display_single_image(gd_gb[0], True, ('Guided Grad-CAM', gd_gb.shape))
     display.append(gd_gb)
 
     # Save Data
