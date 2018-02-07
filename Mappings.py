@@ -24,9 +24,9 @@ FLAGS = tf.app.flags.FLAGS
 
 # Define some of the immutable variables
 tf.app.flags.DEFINE_integer('epoch_size', 60, """Test examples: OF: 508""")
-tf.app.flags.DEFINE_integer('batch_size', 60, """Number of images to process in a batch.""")
+tf.app.flags.DEFINE_integer('batch_size', 5, """Number of images to process in a batch.""")
 tf.app.flags.DEFINE_integer('num_classes', 2, """ Number of classes""")
-tf.app.flags.DEFINE_string('test_files', '30', """Files for testing have this name""")
+tf.app.flags.DEFINE_string('test_files', '60', """Files for testing have this name""")
 tf.app.flags.DEFINE_integer('box_dims', 256, """dimensions of the input pictures""")
 tf.app.flags.DEFINE_integer('network_dims', 128, """the dimensions fed into the network""")
 
@@ -38,7 +38,7 @@ tf.app.flags.DEFINE_float('moving_avg_decay', 0.998, """ The decay rate for the 
 
 # Directory control
 tf.app.flags.DEFINE_string('train_dir', 'testing/', """Directory to write event logs and save checkpoint files""")
-tf.app.flags.DEFINE_string('RunInfo', 'Val2_128/', """Unique file name for this training run""")
+tf.app.flags.DEFINE_string('RunInfo', 'Val1_128/', """Unique file name for this training run""")
 tf.app.flags.DEFINE_integer('GPU', 0, """Which GPU to use""")
 
 
@@ -62,36 +62,35 @@ def eval():
             # Build a graph that computes the prediction from the inference model (Forward pass)
             logits, _, conv = BreastMatrix.forward_pass(validation['data'], phase_train=phase_train)
 
+            # Calculate the cost from the normalized logits
             prob = tf.nn.softmax(logits)
             cost = (-1) * tf.reduce_sum(tf.multiply(labels, tf.log(prob)), axis=1)
 
             # gradient for partial linearization. We only care about target visualization class.
             y_c = tf.reduce_sum(tf.multiply(logits, labels), axis=1)
 
-            # Get last convolutional layer gradient for generating gradCAM visualization
+            # Get last convolutional layer and gradients. tf.gradients outputs derivatives of y_c wrt x in xs
             target_conv_layer = conv
             target_conv_layer_grad = tf.gradients(y_c, target_conv_layer)[0]
 
             # Guided backpropagtion back to input layer
             gb_grad = tf.gradients(cost, images)[0]
 
-            # Initialize variables operation
+            # # Restore moving average of the variables
             var_init = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
-
-            # Restore moving average of the variables
             var_ema = tf.train.ExponentialMovingAverage(FLAGS.moving_avg_decay)
-
-            # Define variables to restore
             var_restore = var_ema.variables_to_restore()
 
-    with tf.Session(graph=eval_graph) as sess:
+            # Initialize the saver
+            saver = tf.train.Saver(var_restore, max_to_keep=3)
 
-        # Retreive the checkpoint
-        ckpt = tf.train.get_checkpoint_state(FLAGS.train_dir + FLAGS.RunInfo)
+    with tf.Session(graph=eval_graph) as sess:
 
         # Initialize the variables
         sess.run(var_init)
 
+        # Retreive the checkpoint
+        ckpt = tf.train.get_checkpoint_state(FLAGS.train_dir + FLAGS.RunInfo)
         if ckpt and ckpt.model_checkpoint_path:
 
             # Restore the learned variables
@@ -115,9 +114,9 @@ def eval():
             tf.gfile.MakeDirs(FLAGS.train_dir + FLAGS.RunInfo + 'Visualizations/')
 
             for i in range(FLAGS.batch_size):
-                utils.print_prob(prob[i], 'data/synset.txt')
+                utils.print_prob(prob[i])
                 utils.visualize(batch_img[i], target_conv_layer_value[i], target_conv_layer_grad_value[i],
-                                gb_grad_value[i], i, False)
+                                gb_grad_value[i], i, True)
 
 
 def main(argv=None):

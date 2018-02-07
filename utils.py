@@ -4,13 +4,8 @@ import skimage.io
 import skimage.transform
 import numpy as np
 
-from matplotlib import pyplot as plt
-from matplotlib.pyplot import imshow
-import matplotlib.image as mpimg
-
 import tensorflow as tf
 
-from skimage import io
 from skimage.transform import resize
 
 import cv2
@@ -22,54 +17,8 @@ FLAGS = tf.app.flags.FLAGS
 
 sdl = SDL.SODLoader('/')
 
-# synset = [l.strip() for l in open('synset.txt').readlines()]
-
-def resnet_preprocess(resized_inputs):
-    """Faster R-CNN Resnet V1 preprocessing.
-
-    VGG style channel mean subtraction as described here:
-    https://gist.github.com/ksimonyan/211839e770f7b538e2d8#file-readme-md
-
-    Args:
-      resized_inputs: A [batch, height_in, width_in, channels] float32 tensor
-        representing a batch of images with values between 0 and 255.0.
-
-    Returns:
-      preprocessed_inputs: A [batch, height_out, width_out, channels] float32
-        tensor representing a batch of images.
-    """
-    channel_means = tf.constant([123.68, 116.779, 103.939],
-                                dtype=tf.float32, shape=[1, 1, 1, 3], name='img_mean')
-    return resized_inputs - channel_means
-
-
-# returns image of shape [224, 224, 3]
-# [height, width, depth]
-def load_image(path, normalize=True):
-    """
-    args:
-        normalize: set True to get pixel value of 0~1
-    """
-    # load image
-    img = skimage.io.imread(path)
-    if normalize:
-        img = img / 255.0
-        assert (0 <= img).all() and (img <= 1.0).all()
-
-
-    # print "Original Image Shape: ", img.shape
-    # we crop image from center
-    short_edge = min(img.shape[:2])
-    yy = int((img.shape[0] - short_edge) / 2)
-    xx = int((img.shape[1] - short_edge) / 2)
-    crop_img = img[yy: yy + short_edge, xx: xx + short_edge]
-    # resize to 224, 224
-    resized_img = skimage.transform.resize(crop_img, (224, 224), preserve_range=True) # do not normalize at transform.
-    return resized_img
-
 # returns the top1 string
-def print_prob(prob, file_path):
-    synset = [l.strip() for l in open(file_path).readlines()]
+def print_prob(prob):
 
     # print prob
     pred = np.argsort(prob)[::-1]
@@ -77,7 +26,7 @@ def print_prob(prob, file_path):
     # Get top1 label
     if pred[0] == 0: top1 = 'ADH'
     else: top1 = 'Pure_DCIS'
-    print("Top1: ", top1, pred)
+    print("Top1: %s, Pred: %s, Prob: %s" %(top1, pred, prob))
 
     return top1
 
@@ -85,20 +34,22 @@ def print_prob(prob, file_path):
 def visualize(image, conv_output, conv_grad, gb_viz, index, display):
     """
 
-    :param image:
-    :param conv_output:
-    :param conv_grad:
-    :param gb_viz:
-    :param index:
-    :param display:
+    :param image: The specific image in this batch. Must have 2+ channels...
+    :param conv_output: The output of the last conv layer
+    :param conv_grad: Partial derivatives of the last conv layer wrt class 1 ?
+    :param gb_viz: gradient of the cost wrt the images
+    :param index: which image in this batch we're working with
+    :param display: whether to display images with matplotlib
     :return:
     """
 
-    output = conv_output  # [7,7,512]
-    grads_val = conv_grad  # [7,7,512]
-    print("grads_val shape:", grads_val.shape)
+    # Set output and grad
+    output = conv_output  # [4,4,256]
+    grads_val = conv_grad  # [4,4,256]
+    print("grads_val shape: ", grads_val.shape, 'Output shape: ', output.shape)
 
-    weights = np.mean(grads_val, axis=(0, 1))  # alpha_k, [512]
+    # Retreive mean weights of each filter?
+    weights = np.mean(grads_val, axis=(0, 1))  # alpha_k, [256]
     cam = np.zeros(output.shape[0: 2], dtype=np.float32)  # [7,7]
 
     # Taking a weighted average
@@ -118,7 +69,7 @@ def visualize(image, conv_output, conv_grad, gb_viz, index, display):
     # Generate heatmap
     cam_heatmap = cv2.applyColorMap(np.uint8(255 * cam), cv2.COLORMAP_JET)
     cam_heatmap = cv2.cvtColor(cam_heatmap, cv2.COLOR_BGR2RGB)
-    if display: sdl.display_single_image(cam_heatmap, True, ('Grad-CAM', cam_heatmap.shape))
+    if display: sdl.display_single_image(cam_heatmap, False, ('Grad-CAM', cam_heatmap.shape))
 
     # Generate guided backprop mask
     gb_viz = np.dstack((gb_viz[:, :, 0]))
