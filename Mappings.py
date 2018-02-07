@@ -114,7 +114,7 @@ def eval():
             tf.gfile.MakeDirs(FLAGS.train_dir + FLAGS.RunInfo + 'Visualizations/')
 
             for i in range(FLAGS.batch_size):
-                utils.print_prob(prob[i])
+                output_class = utils.print_prob(prob[i])
                 utils.visualize(batch_img[i], target_conv_layer_value[i], target_conv_layer_grad_value[i],
                                 gb_grad_value[i], i, True)
 

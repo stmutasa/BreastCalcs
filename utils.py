@@ -59,6 +59,7 @@ def visualize(image, conv_output, conv_grad, gb_viz, index, display):
     cam = np.maximum(cam, 0)
     cam = cam / np.max(cam)  # scale 0 to 1.0
     cam = resize(cam, (FLAGS.network_dims, FLAGS.network_dims), preserve_range=True)
+    cam = cam.T
 
     # Generate image
     img = image.astype(float)
