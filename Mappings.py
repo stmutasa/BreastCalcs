@@ -24,7 +24,7 @@ FLAGS = tf.app.flags.FLAGS
 
 # Define some of the immutable variables
 tf.app.flags.DEFINE_integer('epoch_size', 60, """Test examples: OF: 508""")
-tf.app.flags.DEFINE_integer('batch_size', 5, """Number of images to process in a batch.""")
+tf.app.flags.DEFINE_integer('batch_size', 4, """Number of images to process in a batch.""")
 tf.app.flags.DEFINE_integer('num_classes', 2, """ Number of classes""")
 tf.app.flags.DEFINE_string('test_files', '60', """Files for testing have this name""")
 tf.app.flags.DEFINE_integer('box_dims', 256, """dimensions of the input pictures""")

@@ -59,7 +59,6 @@ def visualize(image, conv_output, conv_grad, gb_viz, index, display):
     cam = np.maximum(cam, 0)
     cam = cam / np.max(cam)  # scale 0 to 1.0
     cam = resize(cam, (FLAGS.network_dims, FLAGS.network_dims), preserve_range=True)
-    cam = cam.T
 
     # Generate image
     img = image.astype(float)
@@ -83,7 +82,7 @@ def visualize(image, conv_output, conv_grad, gb_viz, index, display):
     if display: sdl.display_single_image(gd_gb[0], True, ('Guided Grad-CAM', gd_gb.shape))
 
     # Save Data
-    scipy.misc.imsave((FLAGS.train_dir + FLAGS.RunInfo + ('Visualizations/%s_img.png' % index)), img[:,:,0])
+    scipy.misc.imsave((FLAGS.train_dir + FLAGS.RunInfo + ('Visualizations/%s_aimg.png' % index)), img[:,:,0])
     scipy.misc.imsave((FLAGS.train_dir + FLAGS.RunInfo + ('Visualizations/%s_Grad_Cam.png' % index)), cam_heatmap)
     scipy.misc.imsave((FLAGS.train_dir + FLAGS.RunInfo + ('Visualizations/%s_Guided_Backprop.png' % index)), gb_viz[0])
     scipy.misc.imsave((FLAGS.train_dir + FLAGS.RunInfo + ('Visualizations/%s_Guided_Grad_Cam.png' % index)), gd_gb[0])
