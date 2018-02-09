@@ -8,7 +8,7 @@ import BreastCalcMatrix as BreastMatrix
 import numpy as np
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
-import utils
+import SODTester as SDT
 
 from tensorflow.python.framework import ops
 from tensorflow.python.ops import gen_nn_ops
@@ -19,12 +19,14 @@ def _GuidedReluGrad(op, grad):
 
 _author_ = 'Simi'
 
+sdt = SDT.SODTester(False, False)
+
 # Define the FLAGS class to hold our immutable global variables
 FLAGS = tf.app.flags.FLAGS
 
 # Define some of the immutable variables
 tf.app.flags.DEFINE_integer('epoch_size', 60, """Test examples: OF: 508""")
-tf.app.flags.DEFINE_integer('batch_size', 5, """Number of images to process in a batch.""")
+tf.app.flags.DEFINE_integer('batch_size', 60, """Number of images to process in a batch.""")
 tf.app.flags.DEFINE_integer('num_classes', 2, """ Number of classes""")
 tf.app.flags.DEFINE_string('test_files', '60', """Files for testing have this name""")
 tf.app.flags.DEFINE_integer('box_dims', 256, """dimensions of the input pictures""")
@@ -58,6 +60,7 @@ def eval():
             # To retreive labels
             labels = tf.one_hot(tf.cast(validation['label'], tf.uint8), 2)
             images = validation['data']
+            patient = validation['patient']
 
             # Build a graph that computes the prediction from the inference model (Forward pass)
             logits, _, conv = BreastMatrix.forward_pass(validation['data'], phase_train=phase_train)
@@ -104,19 +107,21 @@ def eval():
         with slim.queues.QueueRunners(sess):
 
             # Retreive the images and softmax predictions
-            prob, batch_img = sess.run([prob, images], feed_dict={phase_train: False})
-            print ('Softmax: ', prob[0])
+            prob, batch_img, pt, lbl = sess.run([prob, images, patient, labels], feed_dict={phase_train: False})
 
             gb_grad_value, target_conv_layer_value, target_conv_layer_grad_value = sess.run(
                 [gb_grad, target_conv_layer, target_conv_layer_grad], feed_dict={phase_train: False})
 
             # Create save dir
             tf.gfile.MakeDirs(FLAGS.train_dir + FLAGS.RunInfo + 'Visualizations/')
+            np.set_printoptions(precision=3)
 
             for i in range(FLAGS.batch_size):
-                output_class = utils.print_prob(prob[i])
-                utils.visualize(batch_img[i], target_conv_layer_value[i], target_conv_layer_grad_value[i],
-                                gb_grad_value[i], i, True)
+                save_directory = (FLAGS.train_dir + FLAGS.RunInfo + 'Visualizations/' + ('Pt%s_Lab%s_Prob%s_' %(str(pt[i]), str(lbl[i]), str(prob[i]))))
+                print('Softmax: %s, Patient: %s, Label: %s' % (prob[i], pt[i], lbl[i]))
+                sdt.visualize(batch_img[i], target_conv_layer_value[i], target_conv_layer_grad_value[i], gb_grad_value[i], i, False, FLAGS.network_dims, save_directory)
+
+            SDT.plt.show()
 
 
 def main(argv=None):
