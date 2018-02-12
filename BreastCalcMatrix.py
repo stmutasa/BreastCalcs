@@ -45,14 +45,19 @@ def forward_pass(images, phase_train=True):
     conv = sdn.residual_layer('Residual1', conv, 3, 16, 2, phase_train=phase_train)
     conv = sdn.residual_layer('Residual2', conv, 3, 32, 2, phase_train=phase_train)
     conv = sdn.residual_layer('Residual3', conv, 3, 64, 2, phase_train=phase_train)
-    conv = sdn.residual_layer('Residual4', conv, 3, 128, 2, phase_train=phase_train)
+    # conv = sdn.residual_layer('Residual4', conv, 3, 128, 2, phase_train=phase_train)
+    conv = sdn.residual_layer('Residual3', conv, 3, 64, 1, phase_train=phase_train)
     print('End Residual: ', conv)
 
     # Inception layers start 4x4
-    conv = sdn.inception_layer('Inception5', conv, 256, S=2, phase_train=phase_train)
-    conv = sdn.inception_layer('Inception6', conv, 256, S=1, phase_train=phase_train)
-    conv = sdn.inception_layer('Inception7', conv, 256, S=1, phase_train=phase_train)
-    conv = sdn.inception_layer('Inception8', conv, 256, S=1, phase_train=phase_train)
+    # conv = sdn.inception_layer('Inception5', conv, 256, S=2, phase_train=phase_train)
+    # conv = sdn.inception_layer('Inception6', conv, 256, S=1, phase_train=phase_train)
+    # conv = sdn.inception_layer('Inception7', conv, 256, S=1, phase_train=phase_train)
+    # conv = sdn.inception_layer('Inception8', conv, 256, S=1, phase_train=phase_train)
+    conv = sdn.inception_layer('Inception5', conv, 64, S=1, phase_train=phase_train)
+    conv = sdn.inception_layer('Inception6', conv, 64, S=1, phase_train=phase_train)
+    conv = sdn.inception_layer('Inception7', conv, 64, S=1, phase_train=phase_train)
+    conv = sdn.inception_layer('Inception8', conv, 64, S=1, phase_train=phase_train)
     print('End Inception', conv)
 
     # Linear layers
