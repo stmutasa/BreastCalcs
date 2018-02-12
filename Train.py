@@ -21,13 +21,14 @@ FLAGS = tf.app.flags.FLAGS
 # Define some of the immutable variables
 tf.app.flags.DEFINE_integer('num_epochs', 600, """Number of epochs to run""")
 tf.app.flags.DEFINE_integer('num_classes', 2, """ Number of classes""")
-tf.app.flags.DEFINE_string('test_files', '60', """Files for testing have this name""")
+tf.app.flags.DEFINE_string('test_files', '0', """Files for testing have this name""")
+
 tf.app.flags.DEFINE_integer('box_dims', 256, """dimensions of the input pictures""")
 tf.app.flags.DEFINE_integer('network_dims', 128, """the dimensions fed into the network""")
 tf.app.flags.DEFINE_integer('cross_validations', 5, """Save this number of buffers for cross validation""")
 
-# 258 / 65
-tf.app.flags.DEFINE_integer('epoch_size', 240, """How many images were loaded""")
+# Epoch sizes: 0: 264, 1: 254, 2:266, 3:260, 4:268
+tf.app.flags.DEFINE_integer('epoch_size', 264, """How many images were loaded""")
 tf.app.flags.DEFINE_integer('print_interval', 5, """How often to print a summary to console during training""")
 tf.app.flags.DEFINE_integer('checkpoint_interval', 25, """How many epochs to wait before saving a checkpoint""")
 tf.app.flags.DEFINE_integer('batch_size', 16, """Number of images to process in a batch.""")
@@ -45,7 +46,7 @@ tf.app.flags.DEFINE_float('beta2', 0.999, """ The beta 1 value for the adam opti
 
 # Directory control
 tf.app.flags.DEFINE_string('train_dir', 'training/', """Directory to write event logs and save checkpoint files""")
-tf.app.flags.DEFINE_string('RunInfo', 'Val1_128/', """Unique file name for this training run""")
+tf.app.flags.DEFINE_string('RunInfo', 'DCIS_128_1/', """Unique file name for this training run""")
 tf.app.flags.DEFINE_integer('GPU', 0, """Which GPU to use""")
 
 # Define a custom training class
@@ -64,7 +65,7 @@ def train():
         logits, l2loss, _ = BreastMatrix.forward_pass(images['data'], phase_train=phase_train)
 
         # Labels
-        labels = images['label']
+        labels = images['label2']
 
         # Calculate the objective function loss
         SCE_loss = BreastMatrix.total_loss(logits, labels)

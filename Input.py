@@ -18,27 +18,27 @@ data_dir = home_dir + '/BreastData/Mammo/Calcs'
 sdl = SDL.SODLoader(data_root=data_dir)
 
 
-def pre_process(box_dims, xvals):
+def pre_process_DCISvsInv(box_dims):
 
     # Retreive filenames data/raw/pure/Patient 41/2/ser32770img00005.dcm
     filenames = []
 
     # Search each folder for the files
-    pure_files = [x[0] for x in os.walk('data/raw/pure/')]
-    inv_files = [x[0] for x in os.walk('data/raw/invasive/')]
-    micro_files = [x[0] for x in os.walk('data/raw/microinvasion/')]
+    pure_files = [x[0] for x in os.walk(data_dir + '/pure/')]
+    inv_files = [x[0] for x in os.walk(data_dir + '/invasive/')]
+    micro_files = [x[0] for x in os.walk(data_dir + '/microinvasion/')]
 
     # Append each file into filenames
     for z in range (len(pure_files)):
-        if len(pure_files[z].split('/')) != 4: continue
+        if len(pure_files[z].split('/')) != 10: continue
         filenames.append(pure_files[z])
 
     for z in range(len(inv_files)):
-        if len(inv_files[z].split('/')) != 4: continue
+        if len(inv_files[z].split('/')) != 10: continue
         filenames.append(inv_files[z])
 
     for z in range(len(micro_files)):
-        if len(micro_files[z].split('/')) != 4: continue
+        if len(micro_files[z].split('/')) != 10: continue
         filenames.append(micro_files[z])
 
     # Shuffle filenames to create semi even protobufs
@@ -46,13 +46,11 @@ def pre_process(box_dims, xvals):
     print(len(filenames), 'Files found: ', filenames)
 
     # Global variables
-    index, filesave, pt = 0, 0, 0
-    lab1, lab2 = 0, 0
-    data = {}
-    display, unique_ID = [], []
+    lab1, lab2, index, filesave, pt = 0, 0, 0, 0, 0
+    display, unique_ID, data = [], [], {}
 
     # Double the box size
-    #box_dims *= 2
+    box_dims *= 2
     print ('Box Dimensions: ', box_dims, 'From: ', box_dims/2)
 
     # Single label files
@@ -64,10 +62,10 @@ def pre_process(box_dims, xvals):
         if 'Patient' not in file: continue
 
         # Retreive the patient name
-        patient = int(file.split('/')[3].split(' ')[-1])
+        patient = int(file.split('/')[-1].split(' ')[-1])
 
         # Retreive the type of invasion
-        invasion = file.split('/')[2]
+        invasion = file.split('/')[-2]
 
         # Dir data/raw/invasive/Patient 53/3, ser 3, pt 53, inv invasive, root Patient 53
         label_file = (file + '/%s-3.nii.gz' %patient)
@@ -78,7 +76,7 @@ def pre_process(box_dims, xvals):
         image_file2 = sdl.retreive_filelist('dcm', False, path=(file + '/4'))
 
         # Load the 1st dicom
-        image, acc, dims, window = sdl.load_DICOM_2D(image_file2[0])
+        image, acc, dims, window, _ = sdl.load_DICOM_2D(image_file2[0])
 
         # Load the label
         segments = np.squeeze(sdl.load_NIFTY(label_file2))
@@ -87,7 +85,7 @@ def pre_process(box_dims, xvals):
         segments = np.squeeze(sdl.reshape_NHWC(segments, False))
 
         # If this is one of the exceptions with only one series...
-        if (invasion + '/' + file.split('/')[3]) in singles:
+        if (invasion + '/' + file.split('/')[-1]) in singles:
 
             # Just copy it...
             image2, acc2, dims2, window2 = np.copy(image), acc, dims, window
@@ -96,7 +94,7 @@ def pre_process(box_dims, xvals):
         else:
 
             # Load the 2nd dicom and labels
-            image2, acc2, dims2, window2 = sdl.load_DICOM_2D(image_file[0])
+            image2, acc2, dims2, window2, _ = sdl.load_DICOM_2D(image_file[0])
             segments2 = np.squeeze(sdl.load_NIFTY(label_file))
             segments2 = np.squeeze(sdl.reshape_NHWC(segments2, False))
 
@@ -114,8 +112,8 @@ def pre_process(box_dims, xvals):
             lab1 += 2
 
         # Retreive the center of the largest label
-        blob, cn = sdl.largest_blob(segments, image)
-        blob2, cn2 = sdl.largest_blob(segments2, image2)
+        blob, cn = sdl.largest_blob(segments)
+        blob2, cn2 = sdl.largest_blob(segments2)
 
         # Calculate a factor to make our image size, call this "radius"
         radius, radius2 = np.sum(blob)**(1/3)*10, np.sum(blob2) ** (1 / 3) * 10
@@ -132,11 +130,6 @@ def pre_process(box_dims, xvals):
         box_scaled2 = cv2.resize(box_scaled2, (box_dims, box_dims))
         box_wide2 = cv2.resize(box_wide2, (box_dims, box_dims))
 
-        # Test: TODO
-        if label != 2: continue
-        sdl.display_single_image(box_scaled, False, label)
-        display.append([box_scaled])
-
         # Save the boxes in one
         box = np.zeros(shape=(box_dims, box_dims, 2)).astype(np.float32)
         box[:, :, 0] = box_scaled
@@ -145,9 +138,13 @@ def pre_process(box_dims, xvals):
         box2[:, :, 0] = box_scaled2
         box2[:, :, 1] = box_wide2
 
-        # Normalize the boxes
-        box = (box - 2160.61) / 555.477
-        box2 = (box2 - 2160.61) / 555.477
+        # Clip and normalize the boxes
+        box[box > 3500] = 3500
+        box2[box2 > 3500] = 3500
+        mean = (np.mean(box) + np.mean(box2)) / 2
+        std = (np.std(box) + np.std(box2)) / 2
+        box = (box - mean) / std
+        box2 = (box2 - mean) / std
 
         # Set how many to iterate through
         num_examples = int(2 - label2)
@@ -171,65 +168,27 @@ def pre_process(box_dims, xvals):
 
         # Finish this example of this patient
         pt +=1
-        if pt > 16: break
 
-        # Save if multiples of 49
-        if pt % int(125/xvals) == 0:
-
+        # Save the protobufs
+        if pt % 25 == 0:
             # Now create a protocol buffer
-            print('Creating a protocol buffer... %s examples from %s patients loaded, Invasive %s, Pure DCIS: %s'
-                  %(len(data), pt, lab2, lab1))
-
-            # Open the file writer
-            writer = tf.python_io.TFRecordWriter(os.path.join(('data/Data%s' % filesave) + '.tfrecords'))
-
-            # Loop through each example and append the protobuf with the specified features
-            for key, values in data.items():
-
-                # Serialize to string
-                example = tf.train.Example(features=tf.train.Features(feature=sdl.create_feature_dict(values, key)))
-
-                # Save this index as a serialized string in the protobuf
-                writer.write(example.SerializeToString())
-
-            # Close the file after writing
-            writer.close()
+            print('Creating a protocol buffer... %s examples from 25 patients loaded, DCIS %s, ADH: %s' % (len(data), lab2, lab1))
+            sdl.save_tfrecords(data, 1, file_root=('data/DCIS_vs_Inv' + str(filesave)))
 
             # Trackers
-            filesave += 1
             lab1, lab2 = 0, 0
+            filesave += 1
 
             # Garbage
             del data
             data = {}
 
+    # Save last protobuf for stragglers
+    print('Creating a protocol buffer... %s examples from 29 patients loaded, DCIS %s, ADH: %s' % (len(data), lab2, lab1))
+    sdl.save_dict_filetypes(data[index - 1])
+    sdl.save_tfrecords(data, 1, file_root=('data/DCIS_vs_Inv' + str(filesave)))
 
-    # Finished all patients
-
-    # Test TODO:
-    #display.append(box_scaled)
-    plt.show()
-    #sdl.display_mosaic(display, True, title='Class1', cmap='gray')
-
-    # Now create a protocol buffer
-    print('Creating final protocol buffer... %s examples from %s patients loaded, Invasive %s, Pure DCIS: %s'
-          % (index, pt, lab2, lab1))
-
-    # Open the file writer
-    writer = tf.python_io.TFRecordWriter(os.path.join(('data/DataFin') + '.tfrecords'))
-
-    # Loop through each example and append the protobuf with the specified features
-    for key, values in data.items():
-
-        # Serialize to string
-        example = tf.train.Example(features=tf.train.Features(feature=sdl.create_feature_dict(values, key)))
-
-        # Save this index as a serialized string in the protobuf
-        writer.write(example.SerializeToString())
-
-    # Close the file after writing
-    writer.close()
-
+    print('Complete... %s examples from %s patients loaded' % (index, pt))
 
 def load_protobuf():
     """

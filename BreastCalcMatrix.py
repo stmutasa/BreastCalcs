@@ -63,62 +63,6 @@ def forward_pass(images, phase_train=True):
     return Logits, sdn.calc_L2_Loss(FLAGS.l2_gamma), conv
 
 
-def forward_pass_old(images, phase_train=True):
-
-    """
-    This function builds the network architecture and performs the forward pass
-    Two main architectures depending on where to insert the inception or residual layer
-    :param images: Images to analyze
-    :param phase_train1: bool, whether this is the training phase or testing phase
-    :return: logits: the predicted age from the network
-    :return: l2: the value of the l2 loss
-    """
-
-
-    # Images 0 is the scaled version, 1 is the regular
-    img1, img2 = images[:, :, :, 1], images[:, :, :, 0]
-
-    # The first layer.
-    conv1 = sdn.convolution('Conv1', tf.expand_dims(img2, -1), 5, 16, 1, phase_train=phase_train, BN=False, relu=False)
-
-    # The second  layer
-    conv2a = sdn.residual_layer('Res0', conv1, 3, 16, 1, phase_train=phase_train, BN=False, relu=False)
-    conv2 = sdn.residual_layer('Res1', conv2a, 3, 16, 1, phase_train=phase_train, BN=False, relu=False, DSC=False)
-
-    # The third layer
-    conv3 = sdn.residual_layer('Res2', conv2, 3, 16, 1, phase_train=phase_train, BN=True, relu=True, DSC=False)
-
-    # Insert inception/residual layer here.
-    conv4 = sdn.inception_layer('Inception1', conv3, 8, 2, phase_train=phase_train, BN=False, relu=False)
-
-    # The 4th layer
-    conv5 = sdn.residual_layer('Res3', conv4, 3, 32, 1, phase_train=phase_train, BN=False, relu=False, DSC=False)
-
-    # 5th layer
-    conv6 = sdn.residual_layer('Res4', conv5, 3, 32, 1, phase_train=phase_train, BN=True, relu=True, DSC=True)
-
-    # The Fc7 layer
-    fc7 = sdn.fc7_layer('FC7', conv6, 8, True, phase_train, FLAGS.dropout_factor, BN=False, override=3, pad='VALID')
-
-    # the softmax layer
-    Logits = sdn.linear_layer('Softmax', fc7, FLAGS.num_classes)
-
-    # Retreive the weights collection
-    weights = tf.get_collection('weights')
-
-    # Sum the losses
-    L2_loss = tf.multiply(tf.add_n([tf.nn.l2_loss(v) for v in weights]), FLAGS.l2_gamma)
-
-    # Add it to the collection
-    tf.add_to_collection('losses', L2_loss)
-
-    # Activation summary
-    tf.summary.scalar('L2_Loss', L2_loss)
-    print(conv4, conv6)
-
-    return Logits, L2_loss
-
-
 def total_loss(logits, labels):
 
     """
