@@ -63,60 +63,43 @@ def forward_pass(images, phase_train=True):
     return Logits, sdn.calc_L2_Loss(FLAGS.l2_gamma), conv
 
 
-def forward_pass_old(images, phase_train=True):
+def forward_pass_32(images, phase_train=True):
 
     """
-    This function builds the network architecture and performs the forward pass
-    Two main architectures depending on where to insert the inception or residual layer
-    :param images: Images to analyze
-    :param phase_train1: bool, whether this is the training phase or testing phase
-    :return: logits: the predicted age from the network
-    :return: l2: the value of the l2 loss
+    Performs the forward pass
+    :param images: Input images
+    :param phase_train: Training or testign phase
+    :return:
     """
-
 
     # Images 0 is the scaled version, 1 is the regular
     img1, img2 = images[:, :, :, 1], images[:, :, :, 0]
+    print (images, img1, img2)
 
-    # The first layer.
-    conv1 = sdn.convolution('Conv1', tf.expand_dims(img2, -1), 5, 16, 1, phase_train=phase_train, BN=False, relu=False)
+    # First layer is conv
+    conv = sdn.convolution('Conv1', tf.expand_dims(img2, -1), 3, 16, 1, phase_train=phase_train)
+    print('Input Images: ', images)
 
-    # The second  layer
-    conv2a = sdn.residual_layer('Res0', conv1, 3, 16, 1, phase_train=phase_train, BN=False, relu=False)
-    conv2 = sdn.residual_layer('Res1', conv2a, 3, 16, 1, phase_train=phase_train, BN=False, relu=False, DSC=False)
+    # Residual blocks
+    conv = sdn.residual_layer('Residual1', conv, 3, 32, 2, phase_train=phase_train)
+    conv = sdn.residual_layer('Residual2', conv, 3, 64, 2, phase_train=phase_train)
+    conv = sdn.residual_layer('Residual3', conv, 3, 64, 1, phase_train=phase_train)
+    conv = sdn.residual_layer('Residual4', conv, 3, 64, 1, phase_train=phase_train)
+    print('End Residual: ', conv)
 
-    # The third layer
-    conv3 = sdn.residual_layer('Res2', conv2, 3, 16, 1, phase_train=phase_train, BN=True, relu=True, DSC=False)
+    # Inception layers start 4x4
+    conv = sdn.inception_layer('Inception5', conv, 128, S=2, phase_train=phase_train)
+    conv = sdn.inception_layer('Inception6', conv, 128, S=1, phase_train=phase_train)
+    conv = sdn.inception_layer('Inception7', conv, 128, S=1, phase_train=phase_train)
+    conv = sdn.inception_layer('Inception8', conv, 128, S=1, phase_train=phase_train)
+    print('End Inception', conv)
 
-    # Insert inception/residual layer here.
-    conv4 = sdn.inception_layer('Inception1', conv3, 8, 2, phase_train=phase_train, BN=False, relu=False)
+    # Linear layers
+    fc = sdn.fc7_layer('FC', conv, 16, True, phase_train, FLAGS.dropout_factor, BN=True, override=3)
+    fc = sdn.linear_layer('Linear', fc, 8, False, phase_train, BN=True)
+    Logits = sdn.linear_layer('Output', fc, FLAGS.num_classes, False, phase_train, BN=False, relu=False, add_bias=False)
 
-    # The 4th layer
-    conv5 = sdn.residual_layer('Res3', conv4, 3, 32, 1, phase_train=phase_train, BN=False, relu=False, DSC=False)
-
-    # 5th layer
-    conv6 = sdn.residual_layer('Res4', conv5, 3, 32, 1, phase_train=phase_train, BN=True, relu=True, DSC=True)
-
-    # The Fc7 layer
-    fc7 = sdn.fc7_layer('FC7', conv6, 8, True, phase_train, FLAGS.dropout_factor, BN=False, override=3, pad='VALID')
-
-    # the softmax layer
-    Logits = sdn.linear_layer('Softmax', fc7, FLAGS.num_classes)
-
-    # Retreive the weights collection
-    weights = tf.get_collection('weights')
-
-    # Sum the losses
-    L2_loss = tf.multiply(tf.add_n([tf.nn.l2_loss(v) for v in weights]), FLAGS.l2_gamma)
-
-    # Add it to the collection
-    tf.add_to_collection('losses', L2_loss)
-
-    # Activation summary
-    tf.summary.scalar('L2_Loss', L2_loss)
-    print(conv4, conv6)
-
-    return Logits, L2_loss
+    return Logits, sdn.calc_L2_Loss(FLAGS.l2_gamma), conv
 
 
 def total_loss(logits, labels):
@@ -202,15 +185,20 @@ def backward_pass(total_loss):
     return dummy_op
 
 
-def inputs(skip=False):
-    """ This function loads our raw inputs, processes them to a protobuffer that is then saved and
-        loads the protobuffer into a batch of tensors """
+def inputs(skip=False, data_type = 'INV'):
+    """
+    Loads the inputs into a protocol buffer run serially
+    :param skip: Whether to skip generating the protocol buffer
+    :param data_type: ADH vs Pure DCIS run or Pure DCIS vs DCIS with invasion
+    :return:
+    """
 
-    # To Do: Skip part 1 and 2 if the protobuff already exists
+    # Skip part 1 and 2 if the protobuff already exists
     if not skip:
 
         # Part 1: Load the raw images and save to protobuf
-        Input.pre_process_adh_vs_pure(FLAGS.box_dims)
+        if data_type == 'INV': Input.pre_process_DCISvsInv(FLAGS.box_dims)
+        else: Input.pre_process_adh_vs_pure(FLAGS.box_dims)
 
     else:
         print('-------------------------Previously saved records found! Loading...')

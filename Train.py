@@ -19,18 +19,18 @@ _author_ = 'Simi'
 FLAGS = tf.app.flags.FLAGS
 
 # Define some of the immutable variables
-tf.app.flags.DEFINE_integer('num_epochs', 600, """Number of epochs to run""")
+tf.app.flags.DEFINE_integer('num_epochs', 301, """Number of epochs to run""")
 tf.app.flags.DEFINE_integer('num_classes', 2, """ Number of classes""")
-tf.app.flags.DEFINE_string('test_files', '60', """Files for testing have this name""")
+tf.app.flags.DEFINE_string('test_files', 'Test', """Files for testing have this name""")
+
 tf.app.flags.DEFINE_integer('box_dims', 256, """dimensions of the input pictures""")
 tf.app.flags.DEFINE_integer('network_dims', 128, """the dimensions fed into the network""")
-tf.app.flags.DEFINE_integer('cross_validations', 5, """Save this number of buffers for cross validation""")
 
-# 258 / 65
-tf.app.flags.DEFINE_integer('epoch_size', 240, """How many images were loaded""")
+# Epoch sizes: 0: 264, 1: 254, 2:266, 3:260, 4:268
+tf.app.flags.DEFINE_integer('epoch_size', 264, """How many images were loaded""")
 tf.app.flags.DEFINE_integer('print_interval', 5, """How often to print a summary to console during training""")
 tf.app.flags.DEFINE_integer('checkpoint_interval', 25, """How many epochs to wait before saving a checkpoint""")
-tf.app.flags.DEFINE_integer('batch_size', 16, """Number of images to process in a batch.""")
+tf.app.flags.DEFINE_integer('batch_size', 128, """Number of images to process in a batch.""")
 
 # Regularizers
 tf.app.flags.DEFINE_float('dropout_factor', 0.5, """ Keep probability""")
@@ -45,7 +45,7 @@ tf.app.flags.DEFINE_float('beta2', 0.999, """ The beta 1 value for the adam opti
 
 # Directory control
 tf.app.flags.DEFINE_string('train_dir', 'training/', """Directory to write event logs and save checkpoint files""")
-tf.app.flags.DEFINE_string('RunInfo', 'Val1_128/', """Unique file name for this training run""")
+tf.app.flags.DEFINE_string('RunInfo', 'ADH_Final/', """Unique file name for this training run""")
 tf.app.flags.DEFINE_integer('GPU', 0, """Which GPU to use""")
 
 # Define a custom training class
@@ -55,7 +55,7 @@ def train():
     with tf.Graph().as_default():
 
         # Get a dictionary of our images, id's, and labels here
-        images, _ = BreastMatrix.inputs(skip=True)
+        images, _ = BreastMatrix.inputs(skip=True, data_type='ADH')
 
         # Define phase of training
         phase_train = tf.placeholder(tf.bool)
@@ -155,9 +155,6 @@ def train():
 
                     if step % checkpoint_interval == 0:
 
-                        # Calculate how long to sleep
-                        sleep_time = int(Epoch / 50) + 1
-
                         print('-' * 70, '\n %s: Saving... Epoch: %s, GPU: %s, File:%s' % (time.time(), Epoch, FLAGS.GPU, FLAGS.RunInfo[:-1]))
 
                         # Define the filename
@@ -170,7 +167,7 @@ def train():
                         saver.save(mon_sess, checkpoint_file)
 
                         # Sleep an amount of time to let testing catch up
-                        time.sleep(60)
+                        if Epoch > 600: time.sleep(60)
 
 
 def main(argv=None):  # pylint: disable=unused-argument
