@@ -23,9 +23,9 @@ tf.app.flags.DEFINE_integer('batch_size', 64, """Number of images to process in 
 tf.app.flags.DEFINE_integer('num_classes', 2, """ Number of classes""")
 
 # Test sizes: 0:64, 1:74, 2:62, 3:68, 4:60
-tf.app.flags.DEFINE_string('test_files', '0', """Files for testing have this name""")
+tf.app.flags.DEFINE_string('test_files', 'Test', """Files for testing have this name""")
 tf.app.flags.DEFINE_integer('box_dims', 256, """dimensions of the input pictures""")
-tf.app.flags.DEFINE_integer('network_dims', 32, """the dimensions fed into the network""")
+tf.app.flags.DEFINE_integer('network_dims', 128, """the dimensions fed into the network""")
 
 # Hyperparameters:
 tf.app.flags.DEFINE_float('dropout_factor', 1.0, """ p value for the dropout layer""")
@@ -35,7 +35,7 @@ tf.app.flags.DEFINE_float('moving_avg_decay', 0.998, """ The decay rate for the 
 
 # Directory control
 tf.app.flags.DEFINE_string('train_dir', 'training/', """Directory to write event logs and save checkpoint files""")
-tf.app.flags.DEFINE_string('RunInfo', 'DCIS_32_1/', """Unique file name for this training run""")
+tf.app.flags.DEFINE_string('RunInfo', 'ADH_Final/', """Unique file name for this training run""")
 tf.app.flags.DEFINE_integer('GPU', 0, """Which GPU to use""")
 
 
@@ -54,7 +54,7 @@ def eval():
         logits, l2loss, _ = BreastMatrix.forward_pass(validation['data'], phase_train=phase_train)
 
         # To retreive labels
-        labels = validation['label2']
+        labels = validation['label']
 
         # Just to print out the loss
         _ = BreastMatrix.total_loss(logits, labels)
@@ -213,7 +213,7 @@ def eval():
 
 
 def main(argv=None):
-    time.sleep(0)
+    time.sleep(500)
     eval()
 
 
