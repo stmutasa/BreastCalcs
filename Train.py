@@ -19,18 +19,18 @@ _author_ = 'Simi'
 FLAGS = tf.app.flags.FLAGS
 
 # Define some of the immutable variables
-tf.app.flags.DEFINE_integer('num_epochs', 301, """Number of epochs to run""")
+tf.app.flags.DEFINE_integer('num_epochs', 302, """Number of epochs to run""")
 tf.app.flags.DEFINE_integer('num_classes', 2, """ Number of classes""")
-tf.app.flags.DEFINE_string('test_files', 'Test', """Files for testing have this name""")
+tf.app.flags.DEFINE_string('test_files', '30', """Files for testing have this name""")
 
 tf.app.flags.DEFINE_integer('box_dims', 256, """dimensions of the input pictures""")
 tf.app.flags.DEFINE_integer('network_dims', 128, """the dimensions fed into the network""")
 
-# Epoch sizes: 0: 264, 1: 254, 2:266, 3:260, 4:268
-tf.app.flags.DEFINE_integer('epoch_size', 264, """How many images were loaded""")
+# inv Epoch sizes: 0: 264, 1: 254, 2:266, 3:260, 4:268
+tf.app.flags.DEFINE_integer('epoch_size', 240, """How many images were loaded""")
 tf.app.flags.DEFINE_integer('print_interval', 5, """How often to print a summary to console during training""")
 tf.app.flags.DEFINE_integer('checkpoint_interval', 25, """How many epochs to wait before saving a checkpoint""")
-tf.app.flags.DEFINE_integer('batch_size', 128, """Number of images to process in a batch.""")
+tf.app.flags.DEFINE_integer('batch_size', 120, """Number of images to process in a batch.""")
 
 # Regularizers
 tf.app.flags.DEFINE_float('dropout_factor', 0.5, """ Keep probability""")
@@ -91,7 +91,7 @@ def train():
         var_restore = var_ema.variables_to_restore()
 
         # Initialize the saver
-        saver = tf.train.Saver(var_restore, max_to_keep=10)
+        saver = tf.train.Saver(var_restore, max_to_keep=3)
 
         # Tester instance
         sdt = SDT.SODTester(True, False)
@@ -153,7 +153,7 @@ def train():
                         summary_writer.add_summary(summary, step)
 
 
-                    if step % checkpoint_interval == 0:
+                    if (step % checkpoint_interval == 0) or (int(Epoch)==300):
 
                         print('-' * 70, '\n %s: Saving... Epoch: %s, GPU: %s, File:%s' % (time.time(), Epoch, FLAGS.GPU, FLAGS.RunInfo[:-1]))
 

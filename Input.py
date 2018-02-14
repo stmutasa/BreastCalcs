@@ -190,97 +190,6 @@ def pre_process_DCISvsInv(box_dims):
 
     print('Complete... %s examples from %s patients loaded' % (index, pt))
 
-def load_protobuf():
-    """
-    Loads the protocol buffer into a form to send to shuffle
-    :param dimesion: String: Whether to load the 3dimensional version
-    :return:
-    """
-
-    # Load all the filenames in glob
-    filenames1 = glob.glob('data/*.tfrecords')
-    filenames = []
-
-    # Define the filenames to remove
-    for i in range(0, len(filenames1)):
-        if FLAGS.test_files not in filenames1[i]:
-            filenames.append(filenames1[i])
-
-    # Show the file names
-    print('Training files: %s' % filenames)
-
-    # Load the dictionary. Remember we saved a doubled box
-    data = sdl.load_tfrecords(filenames, FLAGS.box_dims*2, tf.float32, channels=2)
-
-    # Image augmentation
-
-    # Random contrast and brightness
-    data['data'] = tf.image.random_brightness(data['data'], max_delta=5)
-    data['data'] = tf.image.random_contrast(data['data'], lower=0.95, upper=1.05)
-
-    # Random gaussian noise
-    T_noise = tf.random_uniform([1], 0, 0.2)
-    noise = tf.random_uniform(shape=[FLAGS.box_dims*2, FLAGS.box_dims*2, 2], minval=-T_noise, maxval=T_noise)
-    data['data'] = tf.add(data['data'], tf.cast(noise, tf.float32))
-
-    # Randomly rotate
-    angle = tf.random_uniform([1], -0.52, 0.52)
-    data['data'] = tf.contrib.image.rotate(data['data'], angle)
-
-    # Crop center
-    data['data'] = tf.image.central_crop(data['data'], 0.55)
-
-    # Then randomly flip
-    data['data'] = tf.image.random_flip_left_right(tf.image.random_flip_up_down(data['data']))
-
-    # Random crop using a random resize
-    data['data'] = tf.random_crop(data['data'], [FLAGS.box_dims, FLAGS.box_dims, 2])
-
-    # Display the images
-    tf.summary.image('Train Norm IMG', tf.reshape(data['data'][:, :, 0], shape=[1, FLAGS.box_dims, FLAGS.box_dims, 1]), 4)
-    tf.summary.image('Train Base IMG', tf.reshape(data['data'][:, :, 1], shape=[1, FLAGS.box_dims, FLAGS.box_dims, 1]), 4)
-
-    # Reshape image
-    data['data'] = tf.image.resize_images(data['data'], [FLAGS.network_dims, FLAGS.network_dims])
-
-    return sdl.randomize_batches(data, FLAGS.batch_size)
-
-
-def load_validation_set():
-    """
-    Same as load protobuf() but loads the validation set
-    :param dimension: whether to load the 2d or 3d version
-    :return:
-    """
-
-    # Use Glob here
-    filenames1 = glob.glob('data/*.tfrecords')
-
-    # The real filenames
-    filenames = []
-
-    # Retreive only the right filename
-    for i in range(0, len(filenames1)):
-        if FLAGS.test_files in filenames1[i]:
-            filenames.append(filenames1[i])
-
-    print('Testing files: %s' % filenames)
-
-    # Load the dictionary
-    data = sdl.load_tfrecords(filenames, FLAGS.box_dims*2, channels=2)
-
-    # Crop center
-    data['data'] = tf.image.central_crop(data['data'], 0.5)
-
-    # Display the images
-    tf.summary.image('Test Norm IMG', tf.reshape(data['data'][:, :, 0], shape=[1, FLAGS.box_dims, FLAGS.box_dims, 1]), 4)
-    tf.summary.image('Test Base IMG', tf.reshape(data['data'][:, :, 1], shape=[1, FLAGS.box_dims, FLAGS.box_dims, 1]), 4)
-
-    # Reshape image
-    data['data'] = tf.image.resize_images(data['data'], [FLAGS.network_dims, FLAGS.network_dims])
-
-    return sdl.val_batches(data, FLAGS.batch_size)
-
 
 def pre_process_adh_vs_pure(box_dims):
 
@@ -478,10 +387,11 @@ def pre_process_adh_vs_pure(box_dims):
 
             # Now create a protocol buffer and save the data types
             print('Creating a protocol buffer... %s examples from 30 patients loaded, DCIS %s, ADH: %s' % (len(data), lab2, lab1))
-            sdl.save_tfrecords(data, 1, file_root=('data/ADH_vs_Pure' + str(pt)))
+            sdl.save_tfrecords(data, 1, file_root=('data/ADH_vs_Pure' + str(filesave)))
 
             # Trackers
             lab1, lab2 = 0, 0
+            filesave += 1
 
             # Garbage
             del data
@@ -490,6 +400,101 @@ def pre_process_adh_vs_pure(box_dims):
     # save last protobuf for stragglers
     print('Creating a protocol buffer... %s examples from 29 patients loaded, DCIS %s, ADH: %s' % (len(data), lab2, lab1))
     sdl.save_dict_filetypes(data[index - 1])
-    sdl.save_tfrecords(data, 1, file_root=('data/ADH_vs_Pure' + str(pt)))
+    sdl.save_tfrecords(data, 1, file_root=('data/ADH_vs_Pure' + str(filesave)))
 
     print('Complete... %s examples from %s patients loaded' % (index, pt))
+
+
+def load_protobuf():
+    """
+    Loads the protocol buffer into a form to send to shuffle
+    :param dimesion: String: Whether to load the 3dimensional version
+    :return:
+    """
+
+    # Load all the filenames in glob
+    filenames1 = glob.glob('data/*.tfrecords')
+    filenames = []
+
+    # Define the filenames to remove
+    for i in range(0, len(filenames1)):
+        if FLAGS.test_files not in filenames1[i]:
+            filenames.append(filenames1[i])
+
+    # Show the file names
+    print('Training files: %s' % filenames)
+
+    # Load the dictionary. Remember we saved a doubled box
+    data = sdl.load_tfrecords(filenames, FLAGS.box_dims*2, tf.float32, channels=2)
+
+    # Image augmentation
+
+    # Random contrast and brightness
+    data['data'] = tf.image.random_brightness(data['data'], max_delta=5)
+    data['data'] = tf.image.random_contrast(data['data'], lower=0.95, upper=1.05)
+
+    # Random gaussian noise
+    T_noise = tf.random_uniform([1], 0, 0.2)
+    noise = tf.random_uniform(shape=[FLAGS.box_dims*2, FLAGS.box_dims*2, 2], minval=-T_noise, maxval=T_noise)
+    data['data'] = tf.add(data['data'], tf.cast(noise, tf.float32))
+
+    # Randomly rotate
+    angle = tf.random_uniform([1], -0.52, 0.52)
+    data['data'] = tf.contrib.image.rotate(data['data'], angle)
+
+    # Crop center
+    data['data'] = tf.image.central_crop(data['data'], 0.55)
+
+    # Then randomly flip
+    data['data'] = tf.image.random_flip_left_right(tf.image.random_flip_up_down(data['data']))
+
+    # Random crop using a random resize
+    data['data'] = tf.random_crop(data['data'], [FLAGS.box_dims, FLAGS.box_dims, 2])
+
+    # Display the images
+    tf.summary.image('Train Norm IMG', tf.reshape(data['data'][:, :, 0], shape=[1, FLAGS.box_dims, FLAGS.box_dims, 1]), 4)
+    tf.summary.image('Train Base IMG', tf.reshape(data['data'][:, :, 1], shape=[1, FLAGS.box_dims, FLAGS.box_dims, 1]), 4)
+
+    # Reshape image
+    data['data'] = tf.image.resize_images(data['data'], [FLAGS.network_dims, FLAGS.network_dims])
+
+    return sdl.randomize_batches(data, FLAGS.batch_size)
+
+
+def load_validation_set():
+    """
+    Same as load protobuf() but loads the validation set
+    :param dimension: whether to load the 2d or 3d version
+    :return:
+    """
+
+    # Use Glob here
+    filenames1 = glob.glob('data/*.tfrecords')
+
+    # The real filenames
+    filenames = []
+
+    # Retreive only the right filename
+    for i in range(0, len(filenames1)):
+        if FLAGS.test_files in filenames1[i]:
+            filenames.append(filenames1[i])
+
+    print('Testing files: %s' % filenames)
+
+    # Load the dictionary
+    data = sdl.load_tfrecords(filenames, FLAGS.box_dims*2, channels=2)
+
+    # Crop center
+    data['data'] = tf.image.central_crop(data['data'], 0.5)
+
+    # Display the images
+    tf.summary.image('Test Norm IMG', tf.reshape(data['data'][:, :, 0], shape=[1, FLAGS.box_dims, FLAGS.box_dims, 1]), 4)
+    tf.summary.image('Test Base IMG', tf.reshape(data['data'][:, :, 1], shape=[1, FLAGS.box_dims, FLAGS.box_dims, 1]), 4)
+
+    # Reshape image
+    data['data'] = tf.image.resize_images(data['data'], [FLAGS.network_dims, FLAGS.network_dims])
+
+    return sdl.val_batches(data, FLAGS.batch_size)
+
+
+# pre_process_adh_vs_pure(256)

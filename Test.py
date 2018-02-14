@@ -18,12 +18,12 @@ _author_ = 'Simi'
 FLAGS = tf.app.flags.FLAGS
 
 # Define some of the immutable variables
-tf.app.flags.DEFINE_integer('epoch_size', 64, """Test examples: OF: 508""")
-tf.app.flags.DEFINE_integer('batch_size', 64, """Number of images to process in a batch.""")
+tf.app.flags.DEFINE_integer('epoch_size', 62, """Test examples: OF: 508""")
+tf.app.flags.DEFINE_integer('batch_size', 62, """Number of images to process in a batch.""")
 tf.app.flags.DEFINE_integer('num_classes', 2, """ Number of classes""")
 
-# Test sizes: 0:64, 1:74, 2:62, 3:68, 4:60
-tf.app.flags.DEFINE_string('test_files', 'Test', """Files for testing have this name""")
+# Test sizes: 30 = 13/16, 60 = 16/13 90 = 14/15 120 = 14/15
+tf.app.flags.DEFINE_string('test_files', '30', """Files for testing have this name""")
 tf.app.flags.DEFINE_integer('box_dims', 256, """dimensions of the input pictures""")
 tf.app.flags.DEFINE_integer('network_dims', 128, """the dimensions fed into the network""")
 
@@ -75,7 +75,7 @@ def eval():
         var_restore = var_ema.variables_to_restore()
 
         # Initialize the saver
-        saver = tf.train.Saver(var_restore, max_to_keep=3)
+        saver = tf.train.Saver(var_restore, max_to_keep=2)
 
         # Performance trackers
         best_MAE, best_epoch = 0, 0
@@ -193,7 +193,7 @@ def eval():
                         best_epoch = Epoch
 
             # Break if this is the final checkpoint
-            if 'Final' in Epoch: break
+            if int(Epoch) > 299: break
 
             # Print divider
             print('-' * 70)
@@ -213,7 +213,7 @@ def eval():
 
 
 def main(argv=None):
-    time.sleep(500)
+    time.sleep(0)
     eval()
 
 
