@@ -45,7 +45,7 @@ tf.app.flags.DEFINE_float('beta2', 0.999, """ The beta 1 value for the adam opti
 
 # Directory control
 tf.app.flags.DEFINE_string('train_dir', 'training/', """Directory to write event logs and save checkpoint files""")
-tf.app.flags.DEFINE_string('RunInfo', 'New/', """Unique file name for this training run""")
+tf.app.flags.DEFINE_string('RunInfo', 'New2/', """Unique file name for this training run""")
 tf.app.flags.DEFINE_integer('GPU', 0, """Which GPU to use""")
 
 # Define a custom training class
@@ -167,7 +167,7 @@ def train():
                         saver.save(mon_sess, checkpoint_file)
 
                         # Sleep an amount of time to let testing catch up
-                        if Epoch > 100: time.sleep(15)
+                        if Epoch > 100: time.sleep(20)
 
 
 def main(argv=None):  # pylint: disable=unused-argument

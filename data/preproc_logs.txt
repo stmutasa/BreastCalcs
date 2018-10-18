@@ -1,0 +1,13 @@
+Box Dimensions:  512 From:  256.0
+Creating a protocol buffer... 64 examples from 30 patients loaded, DCIS 28, ADH: 36
+Creating a protocol buffer... 74 examples from 30 patients loaded, DCIS 48, ADH: 26
+Creating a protocol buffer... 62 examples from 30 patients loaded, DCIS 24, ADH: 38
+Creating a protocol buffer... 68 examples from 30 patients loaded, DCIS 36, ADH: 32
+Creating a protocol buffer... 60 examples from 29 patients loaded, DCIS 28, ADH: 32
+Complete... 328 examples from 123 patients 
+
+NEW DCIS:
+Creating a protocol buffer... 571 examples loaded, 204 patients, DCIS [306] 113, Invasive: [267] 91
+
+OLD DCIS:
+Creating a protocol buffer... 246 examples from 123 patients loaded, DCIS 164, ADH: 164

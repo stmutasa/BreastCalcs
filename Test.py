@@ -35,7 +35,7 @@ tf.app.flags.DEFINE_float('moving_avg_decay', 0.998, """ The decay rate for the 
 
 # Directory control
 tf.app.flags.DEFINE_string('train_dir', 'training/', """Directory to write event logs and save checkpoint files""")
-tf.app.flags.DEFINE_string('RunInfo', 'New/', """Unique file name for this training run""")
+tf.app.flags.DEFINE_string('RunInfo', 'New2/', """Unique file name for this training run""")
 tf.app.flags.DEFINE_integer('GPU', 0, """Which GPU to use""")
 
 

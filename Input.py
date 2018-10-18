@@ -524,9 +524,9 @@ def load_protobuf():
 
     # Image augmentation
 
-    # # Random contrast and brightness
-    # data['data'] = tf.image.random_brightness(data['data'], max_delta=2)
-    # data['data'] = tf.image.random_contrast(data['data'], lower=0.95, upper=1.05)
+    # Random contrast and brightness
+    #data['data'] = tf.image.random_brightness(data['data'], max_delta=2)
+    data['data'] = tf.image.random_contrast(data['data'], lower=0.975, upper=1.05)
 
     # Random gaussian noise
     T_noise = tf.random_uniform([1], 0, 0.2)
