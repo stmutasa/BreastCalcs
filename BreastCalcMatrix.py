@@ -119,7 +119,7 @@ def total_loss(logits, labels):
     # Apply cost sensitive loss here
     if FLAGS.loss_factor != 1.0:
 
-        # Make a nodule sensitive binary for values > 1 in this case
+        # Make a nodule sensitive binary for values >= 1 in this case
         lesion_mask = tf.cast(labels >= 1, tf.float32)
 
         # Now multiply this mask by scaling factor then add back to labels. Add 1 to prevent 0 loss
@@ -129,7 +129,7 @@ def total_loss(logits, labels):
     labels = tf.one_hot(tf.cast(labels, tf.uint8), depth=FLAGS.num_classes, dtype=tf.uint8)
 
     # Calculate  loss
-    loss = tf.nn.softmax_cross_entropy_with_logits(labels=tf.squeeze(labels), logits=logits)
+    loss = tf.nn.softmax_cross_entropy_with_logits_v2(labels=tf.squeeze(labels), logits=logits)
 
     # Apply cost sensitive loss here
     if FLAGS.loss_factor != 1.0: loss = tf.multiply(loss, tf.squeeze(lesion_mask))
@@ -197,7 +197,10 @@ def inputs(skip=False, data_type = 'INV'):
     if not skip:
 
         # Part 1: Load the raw images and save to protobuf
-        if data_type == 'INV': Input.pre_process_DCISvsInv(FLAGS.box_dims)
+        if data_type == 'INV':
+            Input.pre_process_DCISvsInv(FLAGS.box_dims)
+            Input.pre_process_INV_new(FLAGS.box_dims)
+
         else: Input.pre_process_adh_vs_pure(FLAGS.box_dims)
 
     else:

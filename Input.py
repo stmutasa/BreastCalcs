@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 
 import SODLoader as SDL
+import SOD_Display as SDD
 
 # Define the FLAGS class to hold our immutable global variables
 FLAGS = tf.app.flags.FLAGS
@@ -16,6 +17,7 @@ home_dir = str(Path.home()) + '/PycharmProjects/Datasets'
 data_dir = home_dir + '/BreastData/Mammo/Calcs'
 
 sdl = SDL.SODLoader(data_root=data_dir)
+sdd = SDD.SOD_Display()
 
 
 def pre_process_DCISvsInv(box_dims):
@@ -118,6 +120,12 @@ def pre_process_DCISvsInv(box_dims):
         # Calculate a factor to make our image size, call this "radius"
         radius, radius2 = np.sum(blob)**(1/3)*10, np.sum(blob2) ** (1 / 3) * 10
 
+        # Clip and normalize the mammos
+        image[image > 3500] = 3500
+        image2[image2 > 3500] = 3500
+        image = sdl.normalize(image, True)
+        image2 = sdl.normalize(image2, True)
+
         # Make a 2dbox at the center of the label with size "radius" if scaled and 256 if not
         box_scaled, _ = sdl.generate_box(image, cn, int(radius)*2, dim3d=False)
         box_wide, _ = sdl.generate_box(image, cn, 512, dim3d=False)
@@ -138,29 +146,22 @@ def pre_process_DCISvsInv(box_dims):
         box2[:, :, 0] = box_scaled2
         box2[:, :, 1] = box_wide2
 
-        # Clip and normalize the boxes
-        box[box > 3500] = 3500
-        box2[box2 > 3500] = 3500
-        mean = (np.mean(box) + np.mean(box2)) / 2
-        std = (np.std(box) + np.std(box2)) / 2
-        box = (box - mean) / std
-        box2 = (box2 - mean) / std
-
         # Set how many to iterate through
-        num_examples = int(2 - label2)
+        # num_examples = int(2 - label2)
+        num_examples = 1
 
         # Generate X examples
         for i in range (num_examples):
 
             # Generate the dictionary
-            data[index] = {'data': box, 'label': label, 'label2': label2, 'patient': int(patient),
+            data[index] = {'data': box, 'label': label, 'label2': label2, 'patient': int(patient), 'accno': file,
                     'series': file, 'invasion': invasion, 'box_x': cn[0], 'box_y': cn[1], 'box_size': radius}
 
             # Append counter
             index += 1
 
             # Generate the dictionary
-            data[index] = {'data': box2, 'label': label, 'label2': label2, 'patient': int(patient),
+            data[index] = {'data': box2, 'label': label, 'label2': label2, 'patient': int(patient), 'accno': file,
                            'series': file, 'invasion': invasion, 'box_x': cn2[0], 'box_y': cn2[1], 'box_size': radius2}
 
             # Append counter
@@ -170,25 +171,119 @@ def pre_process_DCISvsInv(box_dims):
         pt +=1
 
         # Save the protobufs
-        if pt % 25 == 0:
-            # Now create a protocol buffer
-            print('Creating a protocol buffer... %s examples from 25 patients loaded, DCIS %s, ADH: %s' % (len(data), lab2, lab1))
-            sdl.save_tfrecords(data, 1, file_root=('data/DCIS_vs_Inv' + str(filesave)))
-
-            # Trackers
-            lab1, lab2 = 0, 0
-            filesave += 1
-
-            # Garbage
-            del data
-            data = {}
+        if pt % 25 == 0: print ('%s patients saved' %pt)
 
     # Save last protobuf for stragglers
-    print('Creating a protocol buffer... %s examples from 29 patients loaded, DCIS %s, ADH: %s' % (len(data), lab2, lab1))
+    print('Creating a protocol buffer... %s examples from %s patients loaded, DCIS %s, ADH: %s' % (len(data), pt, lab2, lab1))
     sdl.save_dict_filetypes(data[index - 1])
-    sdl.save_tfrecords(data, 1, file_root=('data/DCIS_vs_Inv' + str(filesave)))
+    sdl.save_tfrecords(data, 1, file_root=('data/DCIS_vs_Inv_Old' + str(filesave)))
 
     print('Complete... %s examples from %s patients loaded' % (index, pt))
+
+
+def pre_process_INV_new(box_dims):
+
+    # Retreive the files
+    filenames = []
+    new_files = sdl.retreive_filelist('nii.gz', True, (data_dir + '/New/'))
+
+    # Append each file into filenames
+    for z in new_files:
+        if 'label' not in z: continue
+        if 'ADH' in z: continue
+        filenames.append(z)
+
+    # Shuffle filenames to create semi even protobufs
+    shuffle(filenames)
+
+    # Global variables
+    lab, index, laba, pt = [0, 0], 0, [0, 0], []
+    display, unique_ID, data = [], [], {}
+
+    # Double the box size
+    box_dims *= 2
+    print ('Box Dimensions: ', box_dims, 'From: ', box_dims/2)
+
+    for file in filenames:
+
+        # Retreive the patient name
+        try: patient = int(file.split('/')[-1].split(' ')[0])
+        except:
+            print ('Cant retrieve patient ', file)
+            continue
+
+        # Retreive the type of invasion
+        invasion = file.split('/')[-3]
+
+        # Retreive filenames of the labels
+        img_file = (file[:-13] + '.nii.gz')
+
+        # retreive the projection
+        projection = img_file.split('/')[-1].split(' ')[2].split('.')[0]
+
+        # Load the image and label
+        try: image = np.squeeze(sdl.load_NIFTY(img_file))
+        except:
+            print ('likely doubled segments ', file)
+            continue
+        segments = np.squeeze(sdl.load_NIFTY(file))
+
+        # Assign labels
+        if 'Invasive' in invasion: label = 2
+        elif 'Micro' in invasion:  label = 1
+        else: label = 0 # ADH
+
+        # Second labels
+        if label == 0: label2 = 0
+        else: label2 = 1
+        lab[label2] += 1
+
+        # Retreive the center of the largest label
+        try: blob, cn = sdl.largest_blob(segments)
+        except:
+            print ('Retreive blob failed ', file)
+            continue
+
+        # Calculate a factor to make our image size, call this "radius"
+        radius = np.sum(blob)**(1/3)*10
+
+        # Normalize the mammo
+        image[image > 3500] = 3500
+        image = sdl.normalize(image, True)
+
+        # Make a 2dbox at the center of the label with size "radius" if scaled and 256 if not
+        box_scaled, _ = sdl.generate_box(image, cn, int(radius)*2, dim3d=False)
+        box_wide, _ = sdl.generate_box(image, cn, 512, dim3d=False)
+
+        # Resize image
+        box_scaled = cv2.resize(box_scaled, (box_dims, box_dims))
+        box_wide = cv2.resize(box_wide, (box_dims, box_dims))
+
+        # Save the boxes in one
+        box = np.zeros(shape=(box_dims, box_dims, 2)).astype(np.float32)
+        box[:, :, 0] = box_scaled
+        box[:, :, 1] = box_wide
+
+        # Generate the dictionary
+        data[index] = {'data': box, 'label': label, 'label2': label2, 'patient': int(patient), 'accno': img_file.split('/')[-1],
+                'series': projection, 'invasion': invasion, 'box_x': cn[0], 'box_y': cn[1], 'box_size': radius}
+
+        # Append counters
+        index += 1
+        if patient not in pt:
+            pt.append(patient)
+            laba[label2]+=1
+
+        # Display progress
+        if index % 50 == 0: print('%s examples loaded in %s patients' %(index, len(pt)))
+
+    # Save last protobuf for stragglers
+    print('Creating a protocol buffer... %s examples loaded, %s patients, DCIS [%s] %s, Invasive: [%s] %s'
+          % (len(data), len(pt), lab[0], laba[0], lab[1], laba[1]))
+    sdl.save_dict_filetypes(data[index - 1])
+    sdl.save_tfrecords(data, 1, file_root='data/DCIS_vs_Inv_New')
+
+    print('Complete... %s examples from %s patients loaded' % (index, len(pt)))
 
 
 def pre_process_adh_vs_pure(box_dims):
@@ -429,9 +524,9 @@ def load_protobuf():
 
     # Image augmentation
 
-    # Random contrast and brightness
-    data['data'] = tf.image.random_brightness(data['data'], max_delta=5)
-    data['data'] = tf.image.random_contrast(data['data'], lower=0.95, upper=1.05)
+    # # Random contrast and brightness
+    # data['data'] = tf.image.random_brightness(data['data'], max_delta=2)
+    # data['data'] = tf.image.random_contrast(data['data'], lower=0.95, upper=1.05)
 
     # Random gaussian noise
     T_noise = tf.random_uniform([1], 0, 0.2)
@@ -498,3 +593,5 @@ def load_validation_set():
 
 
 # pre_process_adh_vs_pure(256)
+# pre_process_INV_new(256)
+# pre_process_DCISvsInv(256)

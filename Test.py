@@ -18,12 +18,12 @@ _author_ = 'Simi'
 FLAGS = tf.app.flags.FLAGS
 
 # Define some of the immutable variables
-tf.app.flags.DEFINE_integer('epoch_size', 62, """Test examples: OF: 508""")
-tf.app.flags.DEFINE_integer('batch_size', 62, """Number of images to process in a batch.""")
+tf.app.flags.DEFINE_integer('epoch_size', 246, """Test examples: OF: 508""")
+tf.app.flags.DEFINE_integer('batch_size', 246, """Number of images to process in a batch.""")
 tf.app.flags.DEFINE_integer('num_classes', 2, """ Number of classes""")
 
 # Test sizes: 30 = 13/16, 60 = 16/13 90 = 14/15 120 = 14/15
-tf.app.flags.DEFINE_string('test_files', '30', """Files for testing have this name""")
+tf.app.flags.DEFINE_string('test_files', 'Old', """Files for testing have this name""")
 tf.app.flags.DEFINE_integer('box_dims', 256, """dimensions of the input pictures""")
 tf.app.flags.DEFINE_integer('network_dims', 128, """the dimensions fed into the network""")
 
@@ -35,7 +35,7 @@ tf.app.flags.DEFINE_float('moving_avg_decay', 0.998, """ The decay rate for the 
 
 # Directory control
 tf.app.flags.DEFINE_string('train_dir', 'training/', """Directory to write event logs and save checkpoint files""")
-tf.app.flags.DEFINE_string('RunInfo', 'ADH_Final/', """Unique file name for this training run""")
+tf.app.flags.DEFINE_string('RunInfo', 'New/', """Unique file name for this training run""")
 tf.app.flags.DEFINE_integer('GPU', 0, """Which GPU to use""")
 
 
@@ -54,7 +54,7 @@ def eval():
         logits, l2loss, _ = BreastMatrix.forward_pass(validation['data'], phase_train=phase_train)
 
         # To retreive labels
-        labels = validation['label']
+        labels = validation['label2']
 
         # Just to print out the loss
         _ = BreastMatrix.total_loss(logits, labels)
@@ -119,47 +119,16 @@ def eval():
                     for step in range(max_steps):
 
                         # Load some metrics for testing
-                        lbl1, logtz, serz = mon_sess.run([labels, logits, validation['series']],
-                                                         feed_dict={phase_train: False})
+                        lbl, logtz, unique = mon_sess.run([labels, logits, validation['patient']], feed_dict={phase_train: False})
 
-                        # # Retreive and print the labels and logits
-                        lbl, logtz, serz = np.squeeze(lbl1), np.squeeze(logtz), np.squeeze(serz)
-                        data = {}
-
-                        # Add up all the logits in a dictoinary
-                        for z in range (FLAGS.batch_size):
-
-                            # If we already have the entry, append the second value
-                            if serz[z] in data:
-                                data[serz[z]]['log1'] += logtz[z]
-                                data[serz[z]]['tot'] += 1
-
-                            else: data[serz[z]] = {'label': lbl1[z], 'log1': [logtz[z]], 'tot': 1, 'avg': None}
-
-                        # New Labels and logits
-                        logga, labba = [], []
-
-                        # Add together the data
-                        for idx, dic in data.items():
-
-                            # Now calculate the avg
-                            avg = np.asarray(dic['log1'])/dic['tot']
-
-                            # Create a new logits and label array
-                            labba.append(dic['label'])
-                            logga.append(avg)
-
-                            # Add to dic
-                            dic['avg'] = np.squeeze(np.argmax(avg))
-
-                        # Calculate metrics
-                        #sdt.calculate_metrics(logtz, lbl1, 1, step, True)
-                        sdt.calculate_metrics(np.squeeze(np.asarray(logga)), np.squeeze(np.asarray(labba)), 0, step, True)
+                        # Combine predictions
+                        data, lbl, logtz = sdt.combine_predictions(lbl, logtz, unique, FLAGS.batch_size)
 
                         # Increment step
                         step += 1
 
                     # retreive metrics
+                    sdt.calculate_metrics(logtz, lbl, 1, step)
                     sdt.retreive_metrics_classification(Epoch, True)
                     print ('------ Current Best AUC: %.4f (Epoch: %s) --------' %(best_MAE, best_epoch))
 
@@ -193,7 +162,7 @@ def eval():
                         best_epoch = Epoch
 
             # Break if this is the final checkpoint
-            if int(Epoch) > 299: break
+            if int(Epoch) > 900: break
 
             # Print divider
             print('-' * 70)
