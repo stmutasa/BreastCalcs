@@ -123,8 +123,10 @@ def pre_process_DCISvsInv(box_dims):
         # Clip and normalize the mammos
         image[image > 3500] = 3500
         image2[image2 > 3500] = 3500
-        image = sdl.normalize(image, True)
-        image2 = sdl.normalize(image2, True)
+        # image = sdl.normalize(image, True)
+        # image2 = sdl.normalize(image2, True)
+        image = sdl.normalize_Mammo_histogram(image)
+        image2 = sdl.normalize_Mammo_histogram(image2)
 
         # Make a 2dbox at the center of the label with size "radius" if scaled and 256 if not
         box_scaled, _ = sdl.generate_box(image, cn, int(radius)*2, dim3d=False)
@@ -174,7 +176,7 @@ def pre_process_DCISvsInv(box_dims):
         if pt % 25 == 0: print ('%s patients saved' %pt)
 
     # Save last protobuf for stragglers
-    print('Creating a protocol buffer... %s examples from %s patients loaded, DCIS %s, ADH: %s' % (len(data), pt, lab2, lab1))
+    print('Creating a protocol buffer... %s examples from %s patients loaded, DCIS %s, Invasive: %s' % (len(data), pt, lab2, lab1))
     sdl.save_dict_filetypes(data[index - 1])
     sdl.save_tfrecords(data, 1, file_root=('data/DCIS_vs_Inv_Old' + str(filesave)))
 
@@ -229,12 +231,12 @@ def pre_process_INV_new(box_dims):
         segments = np.squeeze(sdl.load_NIFTY(file))
 
         # Assign labels
-        if 'Invasive' in invasion: label = 2
+        if 'Invasive' in invasion: label = 0
         elif 'Micro' in invasion:  label = 1
-        else: label = 0 # ADH
+        else: label = 2 # ADH
 
         # Second labels
-        if label == 0: label2 = 0
+        if label < 2: label2 = 0
         else: label2 = 1
         lab[label2] += 1
 
@@ -249,7 +251,7 @@ def pre_process_INV_new(box_dims):
 
         # Normalize the mammo
         image[image > 3500] = 3500
-        image = sdl.normalize(image, True)
+        image = sdl.normalize_Mammo_histogram(image)
 
         # Make a 2dbox at the center of the label with size "radius" if scaled and 256 if not
         box_scaled, _ = sdl.generate_box(image, cn, int(radius)*2, dim3d=False)

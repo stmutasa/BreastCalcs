@@ -10,6 +10,7 @@ import BreastCalcMatrix as BreastMatrix
 import numpy as np
 import tensorflow as tf
 import SODTester as SDT
+import SODLoader as SDL
 import tensorflow.contrib.slim as slim
 
 _author_ = 'Simi'
@@ -35,8 +36,10 @@ tf.app.flags.DEFINE_float('moving_avg_decay', 0.998, """ The decay rate for the 
 
 # Directory control
 tf.app.flags.DEFINE_string('train_dir', 'training/', """Directory to write event logs and save checkpoint files""")
-tf.app.flags.DEFINE_string('RunInfo', 'New2/', """Unique file name for this training run""")
+tf.app.flags.DEFINE_string('RunInfo', 'New3/', """Unique file name for this training run""")
 tf.app.flags.DEFINE_integer('GPU', 0, """Which GPU to use""")
+
+sdl = SDL.SODLoader(data_root='data/')
 
 
 def eval():
@@ -151,11 +154,13 @@ def eval():
                         # Define the filename
                         file = ('Epoch_%s_AUC_%0.3f' % (Epoch, sdt.AUC))
 
-                        # Define the checkpoint file:
-                        checkpoint_file = os.path.join('testing/' + FLAGS.RunInfo, file)
+                        # Define the filenames
+                        checkpoint_file = os.path.join('testing/' + FLAGS.RunInfo, ('Epoch_%s_AUC_%0.3f' % (Epoch, sdt.AUC)))
+                        csv_file = os.path.join('testing/' + FLAGS.RunInfo, ('%s_E_%s_AUC_%0.2f.csv' % (FLAGS.RunInfo[:-1], Epoch, sdt.AUC)))
 
                         # Save the checkpoint
                         saver.save(mon_sess, checkpoint_file)
+                        sdl.save_Dict_CSV(data, csv_file)
 
                         # Save a new best MAE
                         best_MAE = sdt.AUC
