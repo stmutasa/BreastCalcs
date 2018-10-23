@@ -108,10 +108,10 @@ def pre_process_DCISvsInv(box_dims):
         # Second labels
         if label < 2:
             label2 = 0
-            lab2 += 4
+            lab1 += 2
         else:
             label2 = 1
-            lab1 += 2
+            lab2 += 2
 
         # Retreive the center of the largest label
         blob, cn = sdl.largest_blob(segments)
@@ -120,11 +120,7 @@ def pre_process_DCISvsInv(box_dims):
         # Calculate a factor to make our image size, call this "radius"
         radius, radius2 = np.sum(blob)**(1/3)*10, np.sum(blob2) ** (1 / 3) * 10
 
-        # Clip and normalize the mammos
-        image[image > 3500] = 3500
-        image2[image2 > 3500] = 3500
-        # image = sdl.normalize(image, True)
-        # image2 = sdl.normalize(image2, True)
+        # Normalize
         image = sdl.normalize_Mammo_histogram(image)
         image2 = sdl.normalize_Mammo_histogram(image2)
 
@@ -148,6 +144,9 @@ def pre_process_DCISvsInv(box_dims):
         box2[:, :, 0] = box_scaled2
         box2[:, :, 1] = box_wide2
 
+        # Unique patient number
+        accno = invasion + '_' + str(patient)
+
         # Set how many to iterate through
         # num_examples = int(2 - label2)
         num_examples = 1
@@ -156,14 +155,14 @@ def pre_process_DCISvsInv(box_dims):
         for i in range (num_examples):
 
             # Generate the dictionary
-            data[index] = {'data': box, 'label': label, 'label2': label2, 'patient': int(patient), 'accno': file,
+            data[index] = {'data': box, 'label': label, 'label2': label2, 'patient': int(patient), 'accno': accno,
                     'series': file, 'invasion': invasion, 'box_x': cn[0], 'box_y': cn[1], 'box_size': radius}
 
             # Append counter
             index += 1
 
             # Generate the dictionary
-            data[index] = {'data': box2, 'label': label, 'label2': label2, 'patient': int(patient), 'accno': file,
+            data[index] = {'data': box2, 'label': label, 'label2': label2, 'patient': int(patient), 'accno': accno,
                            'series': file, 'invasion': invasion, 'box_x': cn2[0], 'box_y': cn2[1], 'box_size': radius2}
 
             # Append counter
@@ -176,7 +175,7 @@ def pre_process_DCISvsInv(box_dims):
         if pt % 25 == 0: print ('%s patients saved' %pt)
 
     # Save last protobuf for stragglers
-    print('Creating a protocol buffer... %s examples from %s patients loaded, DCIS %s, Invasive: %s' % (len(data), pt, lab2, lab1))
+    print('Creating a protocol buffer... %s examples from %s patients loaded, DCIS %s, Invasive: %s' % (len(data), pt, lab1, lab2))
     sdl.save_dict_filetypes(data[index - 1])
     sdl.save_tfrecords(data, 1, file_root=('data/DCIS_vs_Inv_Old' + str(filesave)))
 
@@ -233,7 +232,7 @@ def pre_process_INV_new(box_dims):
         # Assign labels
         if 'Invasive' in invasion: label = 0
         elif 'Micro' in invasion:  label = 1
-        else: label = 2 # ADH
+        else: label = 2 # DCIS
 
         # Second labels
         if label < 2: label2 = 0
@@ -250,7 +249,6 @@ def pre_process_INV_new(box_dims):
         radius = np.sum(blob)**(1/3)*10
 
         # Normalize the mammo
-        image[image > 3500] = 3500
         image = sdl.normalize_Mammo_histogram(image)
 
         # Make a 2dbox at the center of the label with size "radius" if scaled and 256 if not

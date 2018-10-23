@@ -22,6 +22,7 @@ FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_integer('epoch_size', 246, """Test examples: OF: 508""")
 tf.app.flags.DEFINE_integer('batch_size', 246, """Number of images to process in a batch.""")
 tf.app.flags.DEFINE_integer('num_classes', 2, """ Number of classes""")
+tf.app.flags.DEFINE_integer('sleep_time', 90, """How long to wait until running test""")
 
 # Test sizes: 30 = 13/16, 60 = 16/13 90 = 14/15 120 = 14/15
 tf.app.flags.DEFINE_string('test_files', 'Old', """Files for testing have this name""")
@@ -36,7 +37,7 @@ tf.app.flags.DEFINE_float('moving_avg_decay', 0.998, """ The decay rate for the 
 
 # Directory control
 tf.app.flags.DEFINE_string('train_dir', 'training/', """Directory to write event logs and save checkpoint files""")
-tf.app.flags.DEFINE_string('RunInfo', 'New3/', """Unique file name for this training run""")
+tf.app.flags.DEFINE_string('RunInfo', 'Re_New/', """Unique file name for this training run""")
 tf.app.flags.DEFINE_integer('GPU', 0, """Which GPU to use""")
 
 sdl = SDL.SODLoader(data_root='data/')
@@ -122,7 +123,7 @@ def eval():
                     for step in range(max_steps):
 
                         # Load some metrics for testing
-                        lbl, logtz, unique = mon_sess.run([labels, logits, validation['patient']], feed_dict={phase_train: False})
+                        lbl, logtz, unique = mon_sess.run([labels, logits, validation['accno']], feed_dict={phase_train: False})
 
                         # Combine predictions
                         data, lbl, logtz = sdt.combine_predictions(lbl, logtz, unique, FLAGS.batch_size)
@@ -187,7 +188,7 @@ def eval():
 
 
 def main(argv=None):
-    time.sleep(0)
+    time.sleep(FLAGS.sleep_time)
     eval()
 
 

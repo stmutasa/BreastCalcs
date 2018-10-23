@@ -11,3 +11,31 @@ Creating a protocol buffer... 571 examples loaded, 204 patients, DCIS [306] 113,
 
 OLD DCIS:
 Creating a protocol buffer... 246 examples from 123 patients loaded, DCIS 164, ADH: 164
+
+Box Dimensions:  512 From:  256.0
+25 patients saved
+50 patients saved
+75 patients saved
+100 patients saved
+Creating a protocol buffer... 246 examples from 123 patients loaded, DCIS 164, ADH: 164
+Complete... 246 examples from 123 patients loaded
+Box Dimensions:  512 From:  256.0
+50 examples loaded in 45 patients
+Retreive blob failed  /home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/New/Invasive/3522603 8.29.13 LMML/3522603 8.29.13 LMML from 00003-label.nii.gz
+100 examples loaded in 83 patients
+150 examples loaded in 111 patients
+200 examples loaded in 140 patients
+250 examples loaded in 162 patients
+300 examples loaded in 177 patients
+350 examples loaded in 188 patients
+400 examples loaded in 196 patients
+likely doubled segments  /home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/New/Invasive/6942013 8.21.14 LCCS/6942013 8.21.14 LCCS FROM 00001-label.nii.gz
+450 examples loaded in 201 patients
+Retreive blob failed  /home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/New/Invasive/3654255 1.8.16 LCC/3654255 1.8.16 LCC-label.nii.gz
+500 examples loaded in 203 patients
+550 examples loaded in 204 patients
+Creating a protocol buffer... 571 examples loaded, 204 patients, DCIS [267] 91, Invasive: [306] 113
+Complete... 571 examples from 204 patients loaded
+----------------------------------------Loading Protobuff...
+Training files: ['data/DCIS_vs_Inv_New.tfrecords']
+Testing files: ['data/DCIS_vs_Inv_Old0.tfrecords']

@@ -38,7 +38,7 @@ def forward_pass(images, phase_train=True):
     print (images, img1, img2)
 
     # First layer is conv
-    conv = sdn.convolution('Conv1', tf.expand_dims(img2, -1), 3, 8, 1, phase_train=phase_train)
+    conv = sdn.convolution('Conv1', tf.expand_dims(img1, -1), 3, 8, 1, phase_train=phase_train)
     print('Input Images: ', images)
 
     # Residual blocks
