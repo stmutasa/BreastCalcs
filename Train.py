@@ -19,17 +19,17 @@ _author_ = 'Simi'
 FLAGS = tf.app.flags.FLAGS
 
 # Define some of the immutable variables
-tf.app.flags.DEFINE_integer('num_epochs', 905, """Number of epochs to run""")
+tf.app.flags.DEFINE_integer('num_epochs', 605, """Number of epochs to run""")
 tf.app.flags.DEFINE_integer('num_classes', 2, """ Number of classes""")
-tf.app.flags.DEFINE_string('test_files', 'Old', """Files for testing have this name""")
+tf.app.flags.DEFINE_string('test_files', 'Test', """Files for testing have this name""")
 
 tf.app.flags.DEFINE_integer('box_dims', 256, """dimensions of the input pictures""")
 tf.app.flags.DEFINE_integer('network_dims', 128, """the dimensions fed into the network""")
 
 # inv Epoch sizes: 0: 264, 1: 254, 2:266, 3:260, 4:268
-tf.app.flags.DEFINE_integer('epoch_size', 571, """How many images were loaded""")
+tf.app.flags.DEFINE_integer('epoch_size', 697, """How many images were loaded""")
 tf.app.flags.DEFINE_integer('print_interval', 5, """How often to print a summary to console during training""")
-tf.app.flags.DEFINE_integer('checkpoint_interval', 25, """How many epochs to wait before saving a checkpoint""")
+tf.app.flags.DEFINE_integer('checkpoint_interval', 15, """How many epochs to wait before saving a checkpoint""")
 tf.app.flags.DEFINE_integer('batch_size', 128, """Number of images to process in a batch.""")
 
 # Regularizers
@@ -45,7 +45,7 @@ tf.app.flags.DEFINE_float('beta2', 0.999, """ The beta 1 value for the adam opti
 
 # Directory control
 tf.app.flags.DEFINE_string('train_dir', 'training/', """Directory to write event logs and save checkpoint files""")
-tf.app.flags.DEFINE_string('RunInfo', 'Re_New/', """Unique file name for this training run""")
+tf.app.flags.DEFINE_string('RunInfo', 'Shuffled_New/', """Unique file name for this training run""")
 tf.app.flags.DEFINE_integer('GPU', 0, """Which GPU to use""")
 
 # Define a custom training class
@@ -167,7 +167,7 @@ def train():
                         saver.save(mon_sess, checkpoint_file)
 
                         # Sleep an amount of time to let testing catch up
-                        if Epoch > 100: time.sleep(20)
+                        if Epoch > 1: time.sleep(60)
 
 
 def main(argv=None):  # pylint: disable=unused-argument

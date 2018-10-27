@@ -120,7 +120,7 @@ def total_loss(logits, labels):
     if FLAGS.loss_factor != 1.0:
 
         # Make a nodule sensitive binary for values >= 1 in this case
-        lesion_mask = tf.cast(labels >= 1, tf.float32)
+        lesion_mask = tf.cast(labels == 0, tf.float32)
 
         # Now multiply this mask by scaling factor then add back to labels. Add 1 to prevent 0 loss
         lesion_mask = tf.add(tf.multiply(lesion_mask, FLAGS.loss_factor), 1)

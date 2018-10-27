@@ -177,7 +177,7 @@ def pre_process_DCISvsInv(box_dims):
     # Save last protobuf for stragglers
     print('Creating a protocol buffer... %s examples from %s patients loaded, DCIS %s, Invasive: %s' % (len(data), pt, lab1, lab2))
     sdl.save_dict_filetypes(data[index - 1])
-    sdl.save_tfrecords(data, 1, file_root=('data/DCIS_vs_Inv_Old' + str(filesave)))
+    sdl.save_tfrecords(data, 1, file_root=('data/DCIS_vs_Inv_Old_Train' + str(filesave)))
 
     print('Complete... %s examples from %s patients loaded' % (index, pt))
 

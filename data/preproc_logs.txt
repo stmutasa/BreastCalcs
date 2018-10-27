@@ -1,3 +1,7 @@
+Testing Split:
+Creating a protocol buffer... 120 examples from 60 patients loaded, DCIS 60, Invasive: 60
+Creating a protocol buffer... 126 examples from 63 patients loaded, DCIS 22, Invasive: 104
+
 Box Dimensions:  512 From:  256.0
 Creating a protocol buffer... 64 examples from 30 patients loaded, DCIS 28, ADH: 36
 Creating a protocol buffer... 74 examples from 30 patients loaded, DCIS 48, ADH: 26
