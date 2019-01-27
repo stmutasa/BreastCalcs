@@ -411,13 +411,23 @@ def pre_process_adh_vs_pure(box_dims):
         if segments.shape[1]==2: segments = segments[:, 1, :]
         if segments2.shape[1] == 2: segments2 = segments2[:, 1, :]
 
-        # Assign labels
+        # Assign labels. ADH = label 1
         elif 'pure' in invasion:
-            label = 1
+            label = 0
             lab2 += 1
         else:
-            label = 0
+            label = 1
             lab1 += 2
+
+        # Normalize
+        image [image > 3500] = 3500
+        image2 [image2 >3500 ] = 3500
+        mean = (np.mean(image) + np.mean(image2)) / 2
+        std = (np.std(image) + np.std(image2)) / 2
+        image = (image - mean) / std
+        image2 = (image2 - mean) / std
+        image = sdl.normalize_Mammo_histogram(image)
+        image2 = sdl.normalize_Mammo_histogram(image2)
 
         # Retreive the center of the largest label
         blob, cn = sdl.largest_blob(segments)
@@ -446,33 +456,23 @@ def pre_process_adh_vs_pure(box_dims):
         box2[:, :, 0] = box_scaled2
         box2[:, :, 1] = box_wide2
 
-        # Clip and normalize the boxes
-        box [box > 3500] = 3500
-        box2 [box2 >3500 ] = 3500
-        mean = (np.mean(box) + np.mean(box2)) / 2
-        std = (np.std(box) + np.std(box2)) / 2
-        box = (box - mean) / std
-        box2 = (box2 - mean) / std
+        # Unique patient number
+        accno = invasion + '_' + str(patient)
 
-        # Set how many to iterate through
-        num_examples = 1
+        # Generate the dictionary
+        data[index] = {'data': box.astype(np.float32), 'label': label, 'label2': label, 'patient': int(patient), 'accno': accno,
+                       'series': file, 'invasion': invasion, 'box_x': cn[0], 'box_y': cn[1], 'box_size': radius}
 
-        # Generate X examples
-        for i in range(num_examples):
+        # Append counter
+        index += 1
 
-            # Generate the dictionary
-            data[index] = {'data': box.astype(np.float32), 'label': label, 'patient': int(patient), 'series': file, 'invasion': invasion,
-                           'box_x': cn[0], 'box_y': cn[1], 'box_size': radius}
+        # Generate the dictionary
+        # 'data': box2.astype(np.float32), 'label': label, 'patient': int(patient), 'series': file, 'invasion': invasion, 'box_x': cn2[0], 'box_y': cn2[1], 'box_size': radius2}
+        data[index] = {'data': box2.astype(np.float32), 'label': label, 'label2': label, 'patient': int(patient), 'accno': accno,
+                       'series': file, 'invasion': invasion, 'box_x': cn2[0], 'box_y': cn2[1], 'box_size': radius2}
 
-            # Append counter
-            index += 1
-
-            # Generate the dictionary
-            data[index] = {'data': box2.astype(np.float32), 'label': label, 'patient': int(patient), 'series': file, 'invasion': invasion,
-                           'box_x': cn2[0], 'box_y': cn2[1], 'box_size': radius2}
-
-            # Append counter
-            index += 1
+        # Append counter
+        index += 1
 
         # Finish this patient
         pt += 1
@@ -495,9 +495,125 @@ def pre_process_adh_vs_pure(box_dims):
     # save last protobuf for stragglers
     print('Creating a protocol buffer... %s examples from 29 patients loaded, DCIS %s, ADH: %s' % (len(data), lab2, lab1))
     sdl.save_dict_filetypes(data[index - 1])
-    sdl.save_tfrecords(data, 1, file_root=('data/ADH_vs_Pure' + str(filesave)))
+    sdl.save_tfrecords(data, 1, file_root=('data/ADH_vs_Pure_Old' + str(filesave)))
 
     print('Complete... %s examples from %s patients loaded' % (index, pt))
+
+    #     # Save the protobufs
+    #     if pt % 25 == 0: print('%s patients saved' % pt)
+    #
+    # # save last protobuf for stragglers
+    # print('Creating a protocol buffer... %s examples from %s patients loaded, DCIS %s, ADH: %s' % (len(data), pt, lab2, lab1))
+    # # sdl.save_dict_filetypes(data[index - 1])
+    # sdl.save_tfrecords(data, 1, file_root=('data/ADH_vs_Pure_Old' + str(filesave)))
+    #
+    # print('Complete... %s examples from %s patients loaded' % (index, pt))
+
+
+def pre_process_ADH_new(box_dims):
+
+    # Retreive the files
+    filenames = []
+    new_files = sdl.retreive_filelist('nii.gz', True, (data_dir + '/New/'))
+
+    # Append each file into filenames
+    for z in new_files:
+        if 'label' not in z: continue
+        filenames.append(z)
+
+    # Shuffle filenames to create semi even protobufs
+    shuffle(filenames)
+
+    # Global variables
+    lab, index, laba, pt = [0, 0], 0, [0, 0], []
+    display, unique_ID, data = [], [], {}
+
+    # Double the box size
+    box_dims *= 2
+    print ('Box Dimensions: ', box_dims, 'From: ', box_dims/2)
+
+    for file in filenames:
+
+        # Retreive the patient name
+        try: patient = int(file.split('/')[-1].split(' ')[0])
+        except:
+            print ('Cant retrieve patient ', file)
+            continue
+
+        # Retreive the type of invasion
+        invasion = file.split('/')[-3]
+
+        # Retreive filenames of the labels
+        img_file = (file[:-13] + '.nii.gz')
+
+        # retreive the projection
+        projection = img_file.split('/')[-1].split(' ')[2].split('.')[0]
+
+        # Load the image and label
+        try: image = np.squeeze(sdl.load_NIFTY(img_file))
+        except:
+            print ('likely doubled segments ', file)
+            continue
+        segments = np.squeeze(sdl.load_NIFTY(file))
+
+        # Assign labels
+        if 'ADH' in invasion: label = 0
+        elif 'Invasive' in invasion: label = 1
+        elif 'Micro' in invasion:  label = 2
+        else: label = 3 # DCIS
+
+        # ADH vs Inv labels. Make ADH class 1 and DCIS class 0
+        if label > 0 : label2 = 0
+        else: label2 = 1
+        lab[label2] += 1
+
+        # Retreive the center of the largest label
+        try: blob, cn = sdl.largest_blob(segments)
+        except:
+            print ('Retreive blob failed ', file)
+            continue
+
+        # Calculate a factor to make our image size, call this "radius"
+        radius = np.sum(blob)**(1/3)*10
+
+        # Normalize
+        image[image > 3500] = 3500
+        image = (image - np.mean(image)) / np.std(image)
+        image = sdl.normalize_Mammo_histogram(image)
+
+        # Make a 2dbox at the center of the label with size "radius" if scaled and 256 if not
+        box_scaled, _ = sdl.generate_box(image, cn, int(radius)*2, dim3d=False)
+        box_wide, _ = sdl.generate_box(image, cn, 512, dim3d=False)
+
+        # Resize image
+        box_scaled = cv2.resize(box_scaled, (box_dims, box_dims))
+        box_wide = cv2.resize(box_wide, (box_dims, box_dims))
+
+        # Save the boxes in one
+        box = np.zeros(shape=(box_dims, box_dims, 2)).astype(np.float32)
+        box[:, :, 0] = box_scaled
+        box[:, :, 1] = box_wide
+
+        # Generate the dictionary
+        data[index] = {'data': box, 'label': label, 'label2': label2, 'patient': int(patient), 'accno': img_file.split('/')[-1],
+                'series': projection, 'invasion': invasion, 'box_x': cn[0], 'box_y': cn[1], 'box_size': radius}
+
+        # Append counters
+        index += 1
+        if patient not in pt:
+            pt.append(patient)
+            laba[label2]+=1
+
+        # Display progress
+        if index % 50 == 0: print('%s examples loaded in %s patients' %(index, len(pt)))
+
+    # Save the protocol buffer
+    print('Creating a protocol buffer... %s examples loaded, %s patients, DCIS [%s] %s, ADH: [%s] %s'
+          % (len(data), len(pt), lab[0], laba[0], lab[1], laba[1]))
+    sdl.save_dict_filetypes(data[index - 1])
+    sdl.save_tfrecords(data, 1, file_root='data/ADH_vs_DCIS_new')
+
+    print('Complete... %s examples from %s patients loaded' % (index, len(pt)))
 
 
 def load_protobuf():
@@ -525,7 +641,7 @@ def load_protobuf():
     # Image augmentation
 
     # Random contrast and brightness
-    #data['data'] = tf.image.random_brightness(data['data'], max_delta=2)
+    data['data'] = tf.image.random_brightness(data['data'], max_delta=2)
     data['data'] = tf.image.random_contrast(data['data'], lower=0.975, upper=1.05)
 
     # Random gaussian noise
@@ -552,6 +668,9 @@ def load_protobuf():
 
     # Reshape image
     data['data'] = tf.image.resize_images(data['data'], [FLAGS.network_dims, FLAGS.network_dims])
+
+    # Normalize again
+    # data['data'] = tf.image.per_image_standardization(data['data'])
 
     return sdl.randomize_batches(data, FLAGS.batch_size)
 
@@ -589,9 +708,14 @@ def load_validation_set():
     # Reshape image
     data['data'] = tf.image.resize_images(data['data'], [FLAGS.network_dims, FLAGS.network_dims])
 
+    # Normalize again
+    # data['data'] = tf.image.per_image_standardization(data['data'])
+
     return sdl.val_batches(data, FLAGS.batch_size)
 
 
 # pre_process_adh_vs_pure(256)
 # pre_process_INV_new(256)
 # pre_process_DCISvsInv(256)
+# pre_process_ADH_new(256)
+# pre_process_adh_vs_pure(256)

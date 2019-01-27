@@ -38,21 +38,22 @@ def forward_pass(images, phase_train=True):
     print (images, img1, img2)
 
     # First layer is conv
-    conv = sdn.convolution('Conv1', tf.expand_dims(img1, -1), 3, 8, 1, phase_train=phase_train)
+    k=4
+    conv = sdn.convolution('Conv1', tf.expand_dims(img1, -1), 3, k, 1, phase_train=phase_train)
     print('Input Images: ', images)
 
     # Residual blocks
-    conv = sdn.residual_layer('Residual1', conv, 3, 16, 2, phase_train=phase_train)
-    conv = sdn.residual_layer('Residual2', conv, 3, 32, 2, phase_train=phase_train)
-    conv = sdn.residual_layer('Residual3', conv, 3, 64, 2, phase_train=phase_train)
-    conv = sdn.residual_layer('Residual4', conv, 3, 128, 2, phase_train=phase_train)
+    conv = sdn.residual_layer('Residual1', conv, 3, k*2, 2, phase_train=phase_train)
+    conv = sdn.residual_layer('Residual2', conv, 3, k*4, 2, phase_train=phase_train)
+    conv = sdn.residual_layer('Residual3', conv, 3, k*8, 2, phase_train=phase_train)
+    conv = sdn.residual_layer('Residual4', conv, 3, k*16, 2, phase_train=phase_train)
     print('End Residual: ', conv)
 
     # Inception layers start 4x4
-    conv = sdn.inception_layer('Inception5', conv, 256, S=2, phase_train=phase_train)
-    conv = sdn.inception_layer('Inception6', conv, 256, S=1, phase_train=phase_train)
-    conv = sdn.inception_layer('Inception7', conv, 256, S=1, phase_train=phase_train)
-    conv = sdn.inception_layer('Inception8', conv, 256, S=1, phase_train=phase_train)
+    conv = sdn.inception_layer('Inception5', conv, k*32, S=2, phase_train=phase_train)
+    conv = sdn.inception_layer('Inception6', conv, k*32, S=1, phase_train=phase_train)
+    conv = sdn.inception_layer('Inception7', conv, k*32, S=1, phase_train=phase_train)
+    conv = sdn.inception_layer('Inception8', conv, k*32, S=1, phase_train=phase_train)
     print('End Inception', conv)
 
     # Linear layers
@@ -120,7 +121,7 @@ def total_loss(logits, labels):
     if FLAGS.loss_factor != 1.0:
 
         # Make a nodule sensitive binary for values >= 1 in this case
-        lesion_mask = tf.cast(labels == 0, tf.float32)
+        lesion_mask = tf.cast(labels == 1, tf.float32)
 
         # Now multiply this mask by scaling factor then add back to labels. Add 1 to prevent 0 loss
         lesion_mask = tf.add(tf.multiply(lesion_mask, FLAGS.loss_factor), 1)
@@ -201,7 +202,9 @@ def inputs(skip=False, data_type = 'INV'):
             Input.pre_process_DCISvsInv(FLAGS.box_dims)
             Input.pre_process_INV_new(FLAGS.box_dims)
 
-        else: Input.pre_process_adh_vs_pure(FLAGS.box_dims)
+        else:
+            Input.pre_process_adh_vs_pure(FLAGS.box_dims)
+            Input.pre_process_ADH_new(FLAGS.box_dims)
 
     else:
         print('-------------------------Previously saved records found! Loading...')

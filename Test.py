@@ -11,6 +11,7 @@ import numpy as np
 import tensorflow as tf
 import SODTester as SDT
 import SODLoader as SDL
+import SOD_Display as SDD
 import tensorflow.contrib.slim as slim
 
 _author_ = 'Simi'
@@ -19,13 +20,13 @@ _author_ = 'Simi'
 FLAGS = tf.app.flags.FLAGS
 
 # Define some of the immutable variables
-tf.app.flags.DEFINE_integer('epoch_size', 60, """Test examples: OF: 508""")
-tf.app.flags.DEFINE_integer('batch_size', 60, """Number of images to process in a batch.""")
+tf.app.flags.DEFINE_integer('epoch_size', 46, """Test examples: OF: 508""")
+tf.app.flags.DEFINE_integer('batch_size', 46, """Number of images to process in a batch.""")
 tf.app.flags.DEFINE_integer('num_classes', 2, """ Number of classes""")
-tf.app.flags.DEFINE_integer('sleep_time', 0, """How long to wait until running test""")
+tf.app.flags.DEFINE_integer('sleep_time', 600, """How long to wait until running test""")
 
 # Test sizes: 30 = 13/16, 60 = 16/13 90 = 14/15 120 = 14/15
-tf.app.flags.DEFINE_string('test_files', 'Test', """Files for testing have this name""")
+tf.app.flags.DEFINE_string('test_files', 'Pure0', """Files for testing have this name""")
 tf.app.flags.DEFINE_integer('box_dims', 256, """dimensions of the input pictures""")
 tf.app.flags.DEFINE_integer('network_dims', 128, """the dimensions fed into the network""")
 
@@ -37,11 +38,11 @@ tf.app.flags.DEFINE_float('moving_avg_decay', 0.998, """ The decay rate for the 
 
 # Directory control
 tf.app.flags.DEFINE_string('train_dir', 'training/', """Directory to write event logs and save checkpoint files""")
-tf.app.flags.DEFINE_string('RunInfo', 'Shuffled_New/', """Unique file name for this training run""")
+tf.app.flags.DEFINE_string('RunInfo', 'Pure0/', """Unique file name for this training run""")
 tf.app.flags.DEFINE_integer('GPU', 0, """Which GPU to use""")
 
 sdl = SDL.SODLoader(data_root='data/')
-
+sdd = SDD.SOD_Display()
 
 def eval():
 
@@ -49,13 +50,13 @@ def eval():
     with tf.Graph().as_default(), tf.device('/cpu:0'):
 
         # Get a dictionary of our images, id's, and labels here
-        _, validation = BreastMatrix.inputs(skip=True)
+        _, validation = BreastMatrix.inputs(skip=True, data_type='ADH')
 
         # Define phase of training
         phase_train = tf.placeholder(tf.bool)
 
         # Build a graph that computes the prediction from the inference model (Forward pass)
-        logits, l2loss, _ = BreastMatrix.forward_pass_32(validation['data'], phase_train=phase_train)
+        logits, l2loss, _ = BreastMatrix.forward_pass(validation['data'], phase_train=phase_train)
 
         # To retreive labels
         labels = validation['label2']
@@ -140,8 +141,8 @@ def eval():
                     summary = mon_sess.run(all_summaries, feed_dict={phase_train: False})
 
                     # Retreive step
-                    try: step_retreived = int(int(Epoch) * 1.875)
-                    except: step_retreived = 2625
+                    try: step_retreived = int(int(Epoch) * 7)
+                    except: step_retreived = 4726
 
                     # Add the summaries to the protobuf for Tensorboard
                     summary_writer.add_summary(summary, step_retreived)

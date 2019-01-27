@@ -1,45 +1,50 @@
-Testing Split:
-Creating a protocol buffer... 120 examples from 60 patients loaded, DCIS 60, Invasive: 60
-Creating a protocol buffer... 126 examples from 63 patients loaded, DCIS 22, Invasive: 104
-
 Box Dimensions:  512 From:  256.0
-Creating a protocol buffer... 64 examples from 30 patients loaded, DCIS 28, ADH: 36
-Creating a protocol buffer... 74 examples from 30 patients loaded, DCIS 48, ADH: 26
-Creating a protocol buffer... 62 examples from 30 patients loaded, DCIS 24, ADH: 38
-Creating a protocol buffer... 68 examples from 30 patients loaded, DCIS 36, ADH: 32
-Creating a protocol buffer... 60 examples from 29 patients loaded, DCIS 28, ADH: 32
+Creating a protocol buffer... 64 examples from 30 patients loaded, DCIS 28, INV: 36
+Creating a protocol buffer... 74 examples from 30 patients loaded, DCIS 48, INV: 26
+Creating a protocol buffer... 62 examples from 30 patients loaded, DCIS 24, INV: 38
+Creating a protocol buffer... 68 examples from 30 patients loaded, DCIS 36, INV: 32
+Creating a protocol buffer... 60 examples from 29 patients loaded, DCIS 28, INV: 32
 Complete... 328 examples from 123 patients 
 
-NEW DCIS:
-Creating a protocol buffer... 571 examples loaded, 204 patients, DCIS [306] 113, Invasive: [267] 91
-
-OLD DCIS:
-Creating a protocol buffer... 246 examples from 123 patients loaded, DCIS 164, ADH: 164
-
 Box Dimensions:  512 From:  256.0
-25 patients saved
-50 patients saved
-75 patients saved
-100 patients saved
-Creating a protocol buffer... 246 examples from 123 patients loaded, DCIS 164, ADH: 164
-Complete... 246 examples from 123 patients loaded
-Box Dimensions:  512 From:  256.0
-50 examples loaded in 45 patients
-Retreive blob failed  /home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/New/Invasive/3522603 8.29.13 LMML/3522603 8.29.13 LMML from 00003-label.nii.gz
-100 examples loaded in 83 patients
-150 examples loaded in 111 patients
-200 examples loaded in 140 patients
-250 examples loaded in 162 patients
-300 examples loaded in 177 patients
-350 examples loaded in 188 patients
-400 examples loaded in 196 patients
-likely doubled segments  /home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/New/Invasive/6942013 8.21.14 LCCS/6942013 8.21.14 LCCS FROM 00001-label.nii.gz
-450 examples loaded in 201 patients
+Creating a protocol buffer... 60 examples from 30 patients loaded, DCIS 15, ADH: 28
+Creating a protocol buffer... 60 examples from 30 patients loaded, DCIS 16, ADH: 26
+Creating a protocol buffer... 60 examples from 30 patients loaded, DCIS 16, ADH: 28
+Creating a protocol buffer... 60 examples from 30 patients loaded, DCIS 17, ADH: 24
+Creating a protocol buffer... 58 examples from 29 patients loaded, DCIS 17, ADH: 22
+Complete... 298 examples from 149 patients loaded
+
+NEW:
+Creating a protocol buffer... 298 examples from 149 patients loaded, DCIS 81, ADH: 128
+Complete... 298 examples from 149 patients loaded
+
+50 examples loaded in 47 patients
+100 examples loaded in 85 patients
+150 examples loaded in 115 patients
 Retreive blob failed  /home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/New/Invasive/3654255 1.8.16 LCC/3654255 1.8.16 LCC-label.nii.gz
-500 examples loaded in 203 patients
-550 examples loaded in 204 patients
-Creating a protocol buffer... 571 examples loaded, 204 patients, DCIS [267] 91, Invasive: [306] 113
-Complete... 571 examples from 204 patients loaded
-----------------------------------------Loading Protobuff...
-Training files: ['data/DCIS_vs_Inv_New.tfrecords']
-Testing files: ['data/DCIS_vs_Inv_Old0.tfrecords']
+200 examples loaded in 149 patients
+Retreive blob failed  /home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/New/Invasive/3522603 8.29.13 LMML/3522603 8.29.13 LMML from 00003-label.nii.gz
+250 examples loaded in 176 patients
+300 examples loaded in 194 patients
+350 examples loaded in 213 patients
+likely doubled segments  /home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/New/ADH/4733177 4.24.07 LMCC/4733177 4.24.07 LMCC-label from 00001.nii.gz
+400 examples loaded in 228 patients
+450 examples loaded in 238 patients
+500 examples loaded in 247 patients
+550 examples loaded in 255 patients
+likely doubled segments  /home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/New/ADH/5320744 3.25.10 RMLM/5320744 3.25.10 RMLM from 0002-label.nii.gz
+600 examples loaded in 262 patients
+650 examples loaded in 268 patients
+700 examples loaded in 272 patients
+likely doubled segments  /home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/New/Invasive/6942013 8.21.14 LCCS/6942013 8.21.14 LCCS FROM 00001-label.nii.gz
+750 examples loaded in 273 patients
+Creating a protocol buffer... 759 examples loaded, 273 patients, DCIS [573] 204, ADH: [188] 69
+Complete... 759 examples from 273 patients loaded
+151 Files found:  ['/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 20 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 64 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 35 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 96', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 10 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 95', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 27 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 74', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 54 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 23 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 59 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 01', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 56 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 03', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 16', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 5 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 44 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 61', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 60 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 88', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 48', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 59', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 86', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 18', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 46 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 14', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 12 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 39 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 08', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 48 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 40 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 17', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 16 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 53 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 82', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 44', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 99', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 33', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 17 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 97', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 83', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 47', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 11 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 66', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 02', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 65 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 37 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 12', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 62 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 27', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 50 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 33 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 11', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 42 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 49', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 31', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 19 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 21 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 13 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 25 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 34 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 46', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 43 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 56', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 22 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 70', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 36', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 68 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 29 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 21', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 23', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 90', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 25', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 64', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 76', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 26 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 41', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 73', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 58 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 47 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 30 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 75', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 87', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 58', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 94', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 78', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 71', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 79', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 57 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 24', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 45', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 62', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 9 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 72', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 93', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 65', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 26', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 31 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 4 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 32 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 8 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 34', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 2 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 15 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 63 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 45 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 32', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 41 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 1 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 51 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 85', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 7 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 98', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 100', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 84', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 49 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 35', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 55', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 38 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 61 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 63', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 52 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 68', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 22', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 06', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 69', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 53', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 54', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 29', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 19', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 51', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 28 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 92', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 50', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 3 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 07', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 89', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 67 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 13', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 67', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 69 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 09', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 14 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 66 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 18 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 91', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/pure/Patient 40', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 55 YES', '/home/stmutasa/PycharmProjects/Datasets/BreastData/Mammo/Calcs/ADH/Patient 6 YES']
+Box Dimensions:  512 From:  256.0
+Creating a protocol buffer... 60 examples from 30 patients loaded, DCIS 14, ADH: 32
+Creating a protocol buffer... 60 examples from 30 patients loaded, DCIS 15, ADH: 30
+Creating a protocol buffer... 60 examples from 30 patients loaded, DCIS 19, ADH: 20
+Creating a protocol buffer... 60 examples from 30 patients loaded, DCIS 14, ADH: 30
+Creating a protocol buffer... 58 examples from 29 patients loaded, DCIS 19, ADH: 16
+Complete... 298 examples from 149 patients loaded
